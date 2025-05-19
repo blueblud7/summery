@@ -6,6 +6,7 @@ import random
 import logging
 import os
 import re
+from googleapiclient.errors import HttpError
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class YouTubeService:
         # API 키 체크
         self.api_key = settings.YOUTUBE_API_KEY
         self.use_mock_data = use_mock_data or not self.api_key
+        self.youtube = None
         
         # API 키가 설정되어 있고 모의 데이터를 사용하지 않는 경우에만 클라이언트 생성
         if not self.use_mock_data and self.api_key:
@@ -25,27 +27,60 @@ class YouTubeService:
                 self.use_mock_data = True
                 self.youtube = None
         else:
-            self.youtube = None
             if not self.api_key:
                 logger.warning("YouTube API 키가 설정되지 않았습니다. 모의 데이터를 사용합니다.")
             self.use_mock_data = True
 
     def _create_youtube_client(self):
+        """YouTube API 클라이언트를 생성합니다."""
         return build('youtube', 'v3', developerKey=self.api_key)
 
+    def _switch_api_key(self):
+        """할당량 초과 시 다른 API 키로 전환합니다."""
+        old_key = self.api_key
+        new_key = settings.next_youtube_api_key()
+        if new_key != old_key:
+            self.api_key = new_key
+            logger.info(f"YouTube API 키가 변경되었습니다: {old_key[:5]}... -> {new_key[:5]}...")
+            self.youtube = self._create_youtube_client()
+            return True
+        return False
+
     def _make_request(self, request_func, mock_data_func=None):
+        """API 요청을 수행하고 할당량 초과 시 키를 전환합니다."""
         if self.use_mock_data and mock_data_func:
             logger.info("모의 데이터를 사용합니다.")
             return mock_data_func()
             
-        try:
-            return request_func()
-        except Exception as e:
-            logger.error(f"API 요청 오류: {e}")
-            if mock_data_func:
-                logger.info("오류 발생으로 모의 데이터로 대체합니다.")
-                return mock_data_func()
-            raise e
+        retry_count = 0
+        max_retries = min(10, len(settings.youtube_api_keys_list))
+        
+        while retry_count < max_retries:
+            try:
+                return request_func()
+            except HttpError as e:
+                # 할당량 초과 오류 (403 Forbidden + "quota" 문자열 포함)
+                if e.resp.status == 403 and "quota" in str(e).lower():
+                    logger.warning(f"YouTube API 할당량 초과: {e}")
+                    if self._switch_api_key():
+                        retry_count += 1
+                        continue
+                    else:
+                        logger.error("사용 가능한 YouTube API 키가 더 이상 없습니다.")
+                        break
+                else:
+                    logger.error(f"YouTube API 오류: {e}")
+                    break
+            except Exception as e:
+                logger.error(f"API 요청 오류: {e}")
+                break
+        
+        # 모든 재시도 실패 후
+        if mock_data_func:
+            logger.info("오류 발생으로 모의 데이터로 대체합니다.")
+            return mock_data_func()
+        else:
+            raise Exception("YouTube API 요청 실패")
 
     # 채널 정보에 대한 모의 데이터
     def _mock_channel_info(self, channel_id: str) -> Dict[str, Any]:
@@ -290,7 +325,7 @@ class YouTubeService:
         transcript = self.get_transcript(video_id, language_code)
         return self.transcript_to_text(transcript)
     
-    def summarize_video(self, video_url: str, language_code: str = 'ko') -> Dict[str, Any]:
+    def summarize_video(self, video_url: str, language_code: str = 'ko', model: str = None) -> Dict[str, Any]:
         """
         유튜브 동영상 URL을 받아 정보와 자막 텍스트를 반환합니다.
         """
@@ -321,7 +356,8 @@ class YouTubeService:
                 style="detailed",
                 max_length=300,
                 language=language_code,
-                format="text"
+                format="text",
+                model=model
             )
             
             return {

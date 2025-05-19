@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from app.services.summarizer_service import SummarizerService
 from app.services.youtube_service import YouTubeService
+from app.core.config import settings
 import os
 import tempfile
 import shutil
@@ -19,10 +20,12 @@ class SummarizeRequest(BaseModel):
     max_length: int = 200
     language: str = "ko"
     format: str = "text"
+    model: Optional[str] = None
 
 class YouTubeSummarizeRequest(BaseModel):
     url: str
     language: str = "ko"
+    model: Optional[str] = None
 
 class DocumentSummarizeResponse(BaseModel):
     file_name: str
@@ -45,6 +48,7 @@ class BatchSummarizeRequest(BaseModel):
     max_length: int = 200
     language: str = "ko"
     format: str = "text"
+    model: Optional[str] = None
 
 class BatchSummarizeResponse(BaseModel):
     text_summaries: List[SummarizeResponse] = []
@@ -55,24 +59,31 @@ class BatchSummarizeResponse(BaseModel):
 @router.post("/summarize", response_model=SummarizeResponse)
 async def summarize_text(request: SummarizeRequest):
     try:
+        # 모델 확인 및 유효성 검사
+        model = request.model or settings.DEFAULT_MODEL
+        if model not in settings.AVAILABLE_MODELS:
+            logger.warning(f"요청된 모델 {model}이 유효하지 않습니다. 기본 모델로 대체합니다.")
+            model = settings.DEFAULT_MODEL
+            
         summarization_result = summarizer_service.summarize_text(
             text=request.text,
             style=request.style,
             max_length=request.max_length,
             language=request.language,
-            format=request.format
+            format=request.format,
+            model=model
         )
         
         if "error" in summarization_result:
             raise HTTPException(status_code=500, detail=summarization_result["error"])
         
         # 키 문구 추출 (옵션)
-        key_phrases = summarizer_service.extract_key_phrases(request.text)
+        key_phrases = summarizer_service.extract_key_phrases(request.text, model=model)
         summarization_result["key_phrases"] = key_phrases
         
         # 품질 평가 (옵션)
         quality_score = summarizer_service.evaluate_summary_quality(
-            request.text, summarization_result["summary"]
+            request.text, summarization_result["summary"], model=model
         )
         summarization_result["quality_score"] = quality_score
         
@@ -84,9 +95,16 @@ async def summarize_text(request: SummarizeRequest):
 @router.post("/summarize/youtube", response_model=Dict[str, Any])
 async def summarize_youtube(request: YouTubeSummarizeRequest):
     try:
+        # 모델 확인 및 유효성 검사
+        model = request.model or settings.DEFAULT_MODEL
+        if model not in settings.AVAILABLE_MODELS:
+            logger.warning(f"요청된 모델 {model}이 유효하지 않습니다. 기본 모델로 대체합니다.")
+            model = settings.DEFAULT_MODEL
+            
         video_result = youtube_service.summarize_video(
             video_url=request.url,
-            language_code=request.language
+            language_code=request.language,
+            model=model
         )
         
         if "error" in video_result:
@@ -103,9 +121,16 @@ async def summarize_document(
     style: str = Form("simple"),
     max_length: int = Form(200),
     language: str = Form("ko"),
-    format: str = Form("text")
+    format: str = Form("text"),
+    model: Optional[str] = Form(None)
 ):
     try:
+        # 모델 확인 및 유효성 검사
+        use_model = model or settings.DEFAULT_MODEL
+        if use_model not in settings.AVAILABLE_MODELS:
+            logger.warning(f"요청된 모델 {use_model}이 유효하지 않습니다. 기본 모델로 대체합니다.")
+            use_model = settings.DEFAULT_MODEL
+            
         # 임시 파일 생성
         suffix = os.path.splitext(file.filename)[1]
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp:
@@ -138,7 +163,8 @@ async def summarize_document(
                 style=style,
                 max_length=max_length,
                 language=language,
-                format=format
+                format=format,
+                model=use_model
             )
             
             # 응답 준비
@@ -169,6 +195,12 @@ async def batch_summarize(request: BatchSummarizeRequest, background_tasks: Back
     여러 텍스트, 유튜브 링크, 문서 파일을 일괄 요약하는 API
     """
     try:
+        # 모델 확인 및 유효성 검사
+        model = request.model or settings.DEFAULT_MODEL
+        if model not in settings.AVAILABLE_MODELS:
+            logger.warning(f"요청된 모델 {model}이 유효하지 않습니다. 기본 모델로 대체합니다.")
+            model = settings.DEFAULT_MODEL
+            
         response = BatchSummarizeResponse(
             text_summaries=[],
             youtube_summaries=[],
@@ -178,16 +210,23 @@ async def batch_summarize(request: BatchSummarizeRequest, background_tasks: Back
         # 텍스트 요약 처리
         for text_req in request.texts:
             try:
+                # 개별 텍스트 항목의 모델 설정 확인
+                text_model = text_req.model or model
+                if text_model not in settings.AVAILABLE_MODELS:
+                    logger.warning(f"요청된 모델 {text_model}이 유효하지 않습니다. 기본 모델로 대체합니다.")
+                    text_model = model
+                    
                 result = summarizer_service.summarize_text(
                     text=text_req.text,
                     style=text_req.style or request.style,
                     max_length=text_req.max_length or request.max_length,
                     language=text_req.language or request.language,
-                    format=text_req.format or request.format
+                    format=text_req.format or request.format,
+                    model=text_model
                 )
                 
                 # 키 문구 추출 (옵션)
-                key_phrases = summarizer_service.extract_key_phrases(text_req.text)
+                key_phrases = summarizer_service.extract_key_phrases(text_req.text, model=text_model)
                 result["key_phrases"] = key_phrases
                 
                 response.text_summaries.append(result)
@@ -200,7 +239,8 @@ async def batch_summarize(request: BatchSummarizeRequest, background_tasks: Back
             try:
                 video_result = youtube_service.summarize_video(
                     video_url=url,
-                    language_code=request.language
+                    language_code=request.language,
+                    model=model
                 )
                 response.youtube_summaries.append(video_result)
             except Exception as e:
@@ -230,7 +270,8 @@ async def batch_summarize(request: BatchSummarizeRequest, background_tasks: Back
                     response, 
                     request.style,
                     request.max_length,
-                    request.language
+                    request.language,
+                    model
                 )
         
         return response
@@ -244,7 +285,8 @@ async def _generate_overall_summary(
     response: BatchSummarizeResponse,
     style: str,
     max_length: int,
-    language: str
+    language: str,
+    model: str
 ):
     try:
         overall_result = summarizer_service.summarize_text(
@@ -252,7 +294,8 @@ async def _generate_overall_summary(
             style=style,
             max_length=max_length * 2,  # 전체 요약은 더 길게
             language=language,
-            format="text"
+            format="text",
+            model=model
         )
         
         response.overall_summary = overall_result["summary"]

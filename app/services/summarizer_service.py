@@ -7,9 +7,10 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 class SummarizerService:
-    def __init__(self):
+    def __init__(self, model: str = None):
         self.api_key = settings.OPENAI_API_KEY
         self.use_mock = not self.api_key
+        self.model = model or settings.DEFAULT_MODEL
 
     def summarize_text(
         self,
@@ -17,9 +18,13 @@ class SummarizerService:
         style: str = "simple",
         max_length: int = 200,
         language: str = "ko",
-        format: str = "text"
+        format: str = "text",
+        model: str = None
     ) -> Dict:
         try:
+            # 모델 설정 (함수 호출 시 지정된 모델 또는 인스턴스 생성 시 지정된 모델 또는 기본 모델)
+            use_model = model or self.model
+            
             # API 키가 없으면 모의 요약 반환
             if self.use_mock:
                 logger.warning("OpenAI API 키가 없어 모의 요약을 반환합니다.")
@@ -40,10 +45,11 @@ class SummarizerService:
             try:
                 import openai
                 
-                # OpenAI API v1.0 이상 호환
-                client = openai.OpenAI(api_key=self.api_key)
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                # OpenAI API 0.28 호환
+                openai.api_key = self.api_key
+                
+                response = openai.ChatCompletion.create(
+                    model=use_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": f"Please summarize the following text, keeping it under {max_length} characters:\n\n{text}"}
@@ -62,7 +68,7 @@ class SummarizerService:
                         "format": format,
                         "max_length": max_length,
                         "timestamp": datetime.now().isoformat(),
-                        "model": "gpt-3.5-turbo"
+                        "model": use_model
                     }
                 }
                 
@@ -76,7 +82,8 @@ class SummarizerService:
                         "language": language,
                         "format": format,
                         "max_length": max_length,
-                        "timestamp": datetime.now().isoformat()
+                        "timestamp": datetime.now().isoformat(),
+                        "model": use_model
                     }
                 }
             
@@ -87,8 +94,11 @@ class SummarizerService:
                 "details": str(e)
             }
 
-    def extract_key_phrases(self, text: str, max_phrases: int = 5) -> List[str]:
+    def extract_key_phrases(self, text: str, max_phrases: int = 5, model: str = None) -> List[str]:
         try:
+            # 모델 설정
+            use_model = model or self.model
+            
             # API 키가 없으면 모의 키 문구 반환
             if self.use_mock:
                 logger.warning("OpenAI API 키가 없어 모의 키 문구를 반환합니다.")
@@ -97,10 +107,11 @@ class SummarizerService:
             try:
                 import openai
                 
-                # OpenAI API v1.0 이상 호환
-                client = openai.OpenAI(api_key=self.api_key)
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                # OpenAI API 0.28 호환
+                openai.api_key = self.api_key
+                
+                response = openai.ChatCompletion.create(
+                    model=use_model,
                     messages=[
                         {"role": "system", "content": "Extract key phrases from the text. Return as a JSON array of strings."},
                         {"role": "user", "content": f"Extract {max_phrases} key phrases from this text:\n\n{text}"}
@@ -159,8 +170,11 @@ class SummarizerService:
         
         return f"You are a helpful assistant that summarizes text. {style_prompt} {language_prompt} {format_prompt}"
 
-    def evaluate_summary_quality(self, original_text: str, summary: str) -> Dict:
+    def evaluate_summary_quality(self, original_text: str, summary: str, model: str = None) -> Dict:
         try:
+            # 모델 설정
+            use_model = model or self.model
+            
             # API 키가 없으면 모의 평가 반환
             if self.use_mock:
                 logger.warning("OpenAI API 키가 없어 모의 평가를 반환합니다.")
@@ -174,10 +188,11 @@ class SummarizerService:
             try:
                 import openai
                 
-                # OpenAI API v1.0 이상 호환
-                client = openai.OpenAI(api_key=self.api_key)
-                response = client.chat.completions.create(
-                    model="gpt-3.5-turbo",
+                # OpenAI API 0.28 호환
+                openai.api_key = self.api_key
+                
+                response = openai.ChatCompletion.create(
+                    model=use_model,
                     messages=[
                         {"role": "system", "content": "Evaluate the quality of the summary. Return a JSON with scores for accuracy, completeness, and coherence."},
                         {"role": "user", "content": f"Original text:\n{original_text}\n\nSummary:\n{summary}"}
@@ -199,4 +214,42 @@ class SummarizerService:
                 
         except Exception as e:
             logger.error(f"Error in quality evaluation: {str(e)}")
-            return {"error": f"평가 중 오류가 발생했습니다: {str(e)}"} 
+            return {"error": f"평가 중 오류가 발생했습니다: {str(e)}"}
+            
+    def batch_summarize(self, items: List[Dict], model: str = None) -> List[Dict]:
+        """여러 항목을 일괄적으로 요약합니다.
+        
+        Args:
+            items: 요약할 항목 목록 [{"type": "text", "content": "텍스트"}, ...]
+            model: 사용할 모델 (옵션)
+            
+        Returns:
+            요약 결과 목록
+        """
+        results = []
+        for item in items:
+            item_type = item.get("type", "text")
+            content = item.get("content", "")
+            style = item.get("style", settings.DEFAULT_STYLE)
+            max_length = item.get("max_length", settings.DEFAULT_MAX_LENGTH)
+            language = item.get("language", settings.DEFAULT_LANGUAGE)
+            format_type = item.get("format", settings.DEFAULT_FORMAT)
+            
+            if not content:
+                results.append({"error": "내용이 비어 있습니다."})
+                continue
+                
+            if item_type == "text":
+                result = self.summarize_text(content, style, max_length, language, format_type, model)
+            elif item_type == "youtube":
+                # YouTube 요약은 별도 처리 필요
+                result = {"error": "YouTube 요약 기능은 아직 구현되지 않았습니다."}
+            elif item_type == "document":
+                # 문서 요약은 별도 처리 필요
+                result = {"error": "문서 요약 기능은 아직 구현되지 않았습니다."}
+            else:
+                result = {"error": f"지원하지 않는 항목 유형: {item_type}"}
+                
+            results.append(result)
+            
+        return results 
