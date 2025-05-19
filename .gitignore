@@ -1,0 +1,52 @@
+# 민감한 환경 변수 및 API 키
+.env.local
+.env
+.env.development
+.env.production
+
+# 데이터베이스 파일
+*.db
+data/app.db
+data/*.db
+
+# 파이썬 관련 파일
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 로그 파일
+*.log
+logs/
+
+# OS 관련 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 개발 환경 관련 파일
+.idea/
+.vscode/
+*.swp
+*.swo 

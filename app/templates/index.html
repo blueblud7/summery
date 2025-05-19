@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 통합 요약 서비스</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        .item-container {
+            border: 1px dashed #ccc;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            cursor: pointer;
+        }
+        .summary-container {
+            border-left: 4px solid #3B82F6;
+            padding-left: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">AI 통합 요약 서비스</h1>
+            <p class="text-gray-600">텍스트, 유튜브 동영상, 문서를 쉽고 빠르게 요약합니다.</p>
+        </header>
+
+        <!-- 통합 요약 인터페이스 -->
+        <div class="max-w-5xl mx-auto bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-semibold mb-4">여러 항목 요약</h2>
+            <p class="text-gray-700 mb-4">텍스트, 유튜브 링크, 문서 파일을 여러 개 추가하고 한 번에 요약할 수 있습니다.</p>
+            
+            <!-- 항목 추가 버튼 -->
+            <div class="flex flex-wrap gap-4 mb-6">
+                <button id="add-text-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                    <i class="fas fa-font mr-2"></i>텍스트 추가
+                </button>
+                <button id="add-youtube-btn" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">
+                    <i class="fab fa-youtube mr-2"></i>유튜브 링크 추가
+                </button>
+                <button id="add-document-btn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
+                    <i class="fas fa-file-alt mr-2"></i>문서 파일 추가
+                </button>
+            </div>
+            
+            <!-- 공통 요약 설정 -->
+            <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                <h3 class="text-lg font-medium mb-2">공통 요약 설정</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label for="style-select" class="block text-sm font-medium text-gray-700 mb-1">요약 스타일</label>
+                        <select id="style-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="simple">간결하게</option>
+                            <option value="detailed">상세하게</option>
+                            <option value="expert">전문적으로</option>
+                            <option value="beginner">초보자용</option>
+                            <option value="academic">학술적으로</option>
+                            <option value="creative">창의적으로</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="format-select" class="block text-sm font-medium text-gray-700 mb-1">출력 형식</label>
+                        <select id="format-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="text">일반 텍스트</option>
+                            <option value="bullet">글머리 기호</option>
+                            <option value="structured">구조화된 형식</option>
+                            <option value="qa">Q&A 형식</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="language-select" class="block text-sm font-medium text-gray-700 mb-1">언어</label>
+                        <select id="language-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="ko">한국어</option>
+                            <option value="en">영어</option>
+                            <option value="ja">일본어</option>
+                            <option value="zh">중국어</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="max-length" class="block text-sm font-medium text-gray-700 mb-1">최대 길이</label>
+                        <input type="number" id="max-length" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="200" min="50" max="1000">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 항목 컨테이너 -->
+            <div id="items-container" class="mb-6">
+                <!-- 여기에 동적으로 항목 추가 -->
+                <div class="text-gray-500 text-center p-4 border border-dashed rounded-lg">
+                    위 버튼을 클릭하여 요약할 항목을 추가하세요.
+                </div>
+            </div>
+            
+            <!-- 요약 버튼 -->
+            <div class="text-center mb-6">
+                <button id="summarize-btn" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
+                    <i class="fas fa-magic mr-2"></i>모든 항목 요약하기
+                </button>
+            </div>
+            
+            <!-- 로딩 표시 -->
+            <div id="loading" class="hidden text-center p-4">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                <p class="text-indigo-600 mt-2">요약 중입니다. 잠시만 기다려주세요...</p>
+            </div>
+            
+            <!-- 요약 결과 -->
+            <div id="results-container" class="hidden">
+                <h3 class="text-xl font-semibold mb-4 border-b pb-2">요약 결과</h3>
+                
+                <!-- 전체 요약 -->
+                <div id="overall-summary" class="mb-6 p-4 bg-indigo-50 rounded-lg hidden">
+                    <h4 class="text-lg font-medium text-indigo-800 mb-2">전체 요약</h4>
+                    <div id="overall-summary-content" class="text-gray-800"></div>
+                </div>
+                
+                <!-- 개별 요약 결과 컨테이너 -->
+                <div id="individual-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM 요소
+        const addTextBtn = document.getElementById('add-text-btn');
+        const addYoutubeBtn = document.getElementById('add-youtube-btn');
+        const addDocumentBtn = document.getElementById('add-document-btn');
+        const itemsContainer = document.getElementById('items-container');
+        const summarizeBtn = document.getElementById('summarize-btn');
+        const loading = document.getElementById('loading');
+        const resultsContainer = document.getElementById('results-container');
+        const individualResults = document.getElementById('individual-results');
+        const overallSummary = document.getElementById('overall-summary');
+        const overallSummaryContent = document.getElementById('overall-summary-content');
+        
+        // 초기화 및 이벤트 리스너
+        document.addEventListener('DOMContentLoaded', function() {
+            // 항목 추가 버튼 이벤트 리스너
+            addTextBtn.addEventListener('click', addTextItem);
+            addYoutubeBtn.addEventListener('click', addYoutubeItem);
+            addDocumentBtn.addEventListener('click', addDocumentItem);
+            
+            // 요약 버튼 이벤트 리스너
+            summarizeBtn.addEventListener('click', summarizeAll);
+            
+            // 첫 로드 시 안내 메시지 표시
+            updateItemsContainer();
+        });
+        
+        // 아이템 ID 카운터
+        let itemCounter = 0;
+        
+        // 텍스트 항목 추가
+        function addTextItem() {
+            const itemId = `item-${++itemCounter}`;
+            const html = `
+                <div id="${itemId}" class="item-container p-4 mb-4 text-item">
+                    <button class="remove-btn text-red-500 hover:text-red-700" onclick="removeItem('${itemId}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="mb-2">
+                        <strong><i class="fas fa-font mr-1"></i> 텍스트</strong>
+                    </div>
+                    <textarea class="w-full h-32 rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-content" placeholder="요약할 텍스트를 입력하세요"></textarea>
+                </div>
+            `;
+            appendItem(html);
+        }
+        
+        // 유튜브 항목 추가
+        function addYoutubeItem() {
+            const itemId = `item-${++itemCounter}`;
+            const html = `
+                <div id="${itemId}" class="item-container p-4 mb-4 youtube-item">
+                    <button class="remove-btn text-red-500 hover:text-red-700" onclick="removeItem('${itemId}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="mb-2">
+                        <strong><i class="fab fa-youtube mr-1 text-red-600"></i> 유튜브 링크</strong>
+                    </div>
+                    <input type="url" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 url-content" placeholder="유튜브 URL을 입력하세요 (예: https://www.youtube.com/watch?v=...)">
+                </div>
+            `;
+            appendItem(html);
+        }
+        
+        // 문서 항목 추가
+        function addDocumentItem() {
+            const itemId = `item-${++itemCounter}`;
+            const html = `
+                <div id="${itemId}" class="item-container p-4 mb-4 document-item">
+                    <button class="remove-btn text-red-500 hover:text-red-700" onclick="removeItem('${itemId}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="mb-2">
+                        <strong><i class="fas fa-file-alt mr-1 text-green-600"></i> 문서 파일</strong>
+                    </div>
+                    <input type="file" class="w-full p-2 border border-gray-300 rounded file-content" accept=".txt,.pdf,.doc,.docx">
+                </div>
+            `;
+            appendItem(html);
+        }
+        
+        // 항목 추가 공통 함수
+        function appendItem(html) {
+            // 안내 메시지가 있다면 제거
+            clearPlaceholderMessage();
+            
+            // 항목 추가
+            itemsContainer.insertAdjacentHTML('beforeend', html);
+            
+            // 컨테이너 상태 업데이트
+            updateItemsContainer();
+        }
+        
+        // 안내 메시지 제거
+        function clearPlaceholderMessage() {
+            const placeholder = itemsContainer.querySelector('.text-gray-500.text-center');
+            if (placeholder) {
+                placeholder.remove();
+            }
+        }
+        
+        // 항목 제거
+        function removeItem(itemId) {
+            const item = document.getElementById(itemId);
+            if (item) {
+                item.remove();
+                updateItemsContainer();
+            }
+        }
+        
+        // 컨테이너 상태 업데이트
+        function updateItemsContainer() {
+            const hasItems = itemsContainer.querySelectorAll('.item-container').length > 0;
+            
+            if (!hasItems) {
+                // 항목이 없을 때 안내 메시지 표시
+                itemsContainer.innerHTML = `
+                    <div class="text-gray-500 text-center p-4 border border-dashed rounded-lg">
+                        위 버튼을 클릭하여 요약할 항목을 추가하세요.
+                    </div>
+                `;
+            }
+            
+            // 요약 버튼 활성화/비활성화
+            summarizeBtn.disabled = !hasItems;
+            summarizeBtn.classList.toggle('opacity-50', !hasItems);
+            summarizeBtn.classList.toggle('cursor-not-allowed', !hasItems);
+        }
+        
+        // 모든 항목 요약
+        function summarizeAll() {
+            // 항목 확인
+            const textItems = itemsContainer.querySelectorAll('.text-item');
+            const youtubeItems = itemsContainer.querySelectorAll('.youtube-item');
+            const documentItems = itemsContainer.querySelectorAll('.document-item');
+            
+            if (textItems.length === 0 && youtubeItems.length === 0 && documentItems.length === 0) {
+                alert('요약할 항목을 하나 이상 추가해주세요.');
+                return;
+            }
+            
+            // 로딩 시작
+            loading.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+            
+            // 공통 설정 가져오기
+            const style = document.getElementById('style-select').value;
+            const format = document.getElementById('format-select').value;
+            const language = document.getElementById('language-select').value;
+            const maxLength = document.getElementById('max-length').value;
+            
+            // 배치 요약 요청 데이터 준비
+            const batchRequest = {
+                texts: [],
+                youtube_urls: [],
+                style: style,
+                max_length: parseInt(maxLength),
+                language: language,
+                format: format
+            };
+            
+            // 텍스트 항목 추가
+            textItems.forEach(item => {
+                const textContent = item.querySelector('.text-content').value.trim();
+                if (textContent) {
+                    batchRequest.texts.push({
+                        text: textContent,
+                        style: style,
+                        max_length: parseInt(maxLength),
+                        language: language,
+                        format: format
+                    });
+                }
+            });
+            
+            // 유튜브 항목 추가
+            youtubeItems.forEach(item => {
+                const url = item.querySelector('.url-content').value.trim();
+                if (url) {
+                    batchRequest.youtube_urls.push(url);
+                }
+            });
+            
+            // API 호출 (문서 항목은 별도 처리)
+            fetch('/api/v1/batch-summarize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(batchRequest)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('요약 요청에 실패했습니다.');
+                }
+                return response.json();
+            })
+            .then(async data => {
+                // 문서 항목 별도 처리 (파일 업로드 필요)
+                const documentPromises = [];
+                documentItems.forEach(item => {
+                    const fileInput = item.querySelector('.file-content');
+                    if (fileInput.files.length > 0) {
+                        documentPromises.push(processDocument(fileInput.files[0], style, maxLength, language, format));
+                    }
+                });
+                
+                // 문서 처리 완료 기다리기
+                const documentResults = await Promise.all(documentPromises);
+                
+                // 결과 표시
+                displayResults(data, documentResults);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('요약 처리 중 오류가 발생했습니다: ' + error.message);
+            })
+            .finally(() => {
+                loading.classList.add('hidden');
+            });
+        }
+        
+        // 문서 처리 함수
+        async function processDocument(file, style, maxLength, language, format) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('style', style);
+            formData.append('max_length', maxLength);
+            formData.append('language', language);
+            formData.append('format', format);
+            
+            try {
+                const response = await fetch('/api/v1/summarize/document', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('문서 요약에 실패했습니다.');
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Document Error:', error);
+                return {error: error.message, file_name: file.name};
+            }
+        }
+        
+        // 결과 표시 함수
+        function displayResults(batchResults, documentResults) {
+            // 결과 컨테이너 초기화
+            individualResults.innerHTML = '';
+            
+            // 전체 요약 표시 (있는 경우)
+            if (batchResults.overall_summary) {
+                overallSummaryContent.textContent = batchResults.overall_summary;
+                overallSummary.classList.remove('hidden');
+            } else {
+                overallSummary.classList.add('hidden');
+            }
+            
+            // 텍스트 요약 결과 표시
+            batchResults.text_summaries.forEach((result, index) => {
+                const html = `
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-medium text-blue-800 mb-2">
+                            <i class="fas fa-font mr-1"></i> 텍스트 요약 ${index + 1}
+                        </h4>
+                        ${result.error ? 
+                            `<div class="text-red-600">오류: ${result.error}</div>` : 
+                            `<div class="summary-container mt-2">${result.summary}</div>`
+                        }
+                        ${result.key_phrases && result.key_phrases.length > 0 ? 
+                            `<div class="mt-4">
+                                <h5 class="text-sm font-medium text-gray-700">주요 키워드</h5>
+                                <div class="flex flex-wrap gap-2 mt-1">
+                                    ${result.key_phrases.map(phrase => `
+                                        <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">${phrase}</span>
+                                    `).join('')}
+                                </div>
+                            </div>` : 
+                            ''
+                        }
+                    </div>
+                `;
+                individualResults.insertAdjacentHTML('beforeend', html);
+            });
+            
+            // 유튜브 요약 결과 표시
+            batchResults.youtube_summaries.forEach((result, index) => {
+                const html = `
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-medium text-red-800 mb-2">
+                            <i class="fab fa-youtube mr-1"></i> 유튜브 요약 ${index + 1}
+                        </h4>
+                        ${result.error ? 
+                            `<div class="text-red-600">오류: ${result.error}</div>` :
+                            `<div class="mb-2">
+                                <strong>${result.title || '제목 정보 없음'}</strong>
+                                <span class="text-sm text-gray-600 ml-2">(${result.channel || '채널 정보 없음'})</span>
+                            </div>
+                            <div class="summary-container mt-2">${result.summary || '요약 실패'}</div>`
+                        }
+                    </div>
+                `;
+                individualResults.insertAdjacentHTML('beforeend', html);
+            });
+            
+            // 문서 요약 결과 표시
+            documentResults.forEach((result, index) => {
+                const html = `
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                        <h4 class="font-medium text-green-800 mb-2">
+                            <i class="fas fa-file-alt mr-1"></i> 문서 요약 ${index + 1}
+                        </h4>
+                        ${result.error ? 
+                            `<div class="text-red-600">오류: ${result.error}</div>` :
+                            `<div class="mb-2">
+                                <strong>${result.file_name || '파일명 정보 없음'}</strong>
+                                <span class="text-sm text-gray-600 ml-2">(${result.file_extension || '확장자 정보 없음'}, ${formatFileSize(result.file_size)})</span>
+                            </div>
+                            <div class="summary-container mt-2">${result.summary || '요약 실패'}</div>`
+                        }
+                    </div>
+                `;
+                individualResults.insertAdjacentHTML('beforeend', html);
+            });
+            
+            // 결과 컨테이너 표시
+            resultsContainer.classList.remove('hidden');
+            
+            // 결과로 스크롤
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 파일 크기 포맷
+        function formatFileSize(bytes) {
+            if (!bytes) return '크기 정보 없음';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let size = bytes;
+            let unitIndex = 0;
+            
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex++;
+            }
+            
+            return `${size.toFixed(1)} ${units[unitIndex]}`;
+        }
+    </script>
+</body>
+</html> 

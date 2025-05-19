@@ -1,0 +1,67 @@
+import logging
+from fastapi import FastAPI, Request, Depends
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.cors import CORSMiddleware
+from app.api.endpoints import summarizer, youtube_manage
+from app.core.config import settings
+from app.db.database import init_db
+import os
+
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+
+logger = logging.getLogger(__name__)
+
+# 애플리케이션 생성
+app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
+
+# CORS 설정
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 정적 파일 마운트
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# 템플릿 설정
+templates = Jinja2Templates(directory="app/templates")
+
+# API 라우터 등록
+logger.info("Registering routers...")
+app.include_router(summarizer.router, prefix="/api/v1", tags=["summarizer"])
+app.include_router(youtube_manage.router, prefix="/api/v1/youtube", tags=["youtube"])
+
+@app.on_event("startup")
+async def startup_db_client():
+    """애플리케이션 시작 시 데이터베이스 초기화"""
+    try:
+        logger.info("데이터베이스 초기화 중...")
+        init_db()
+        logger.info("데이터베이스 초기화 완료")
+    except Exception as e:
+        logger.error(f"데이터베이스 초기화 오류: {e}")
+
+# 루트 페이지
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    logger.info("Root endpoint called")
+    return templates.TemplateResponse("index.html", {"request": request})
+
+# 관리 페이지
+@app.get("/manage", response_class=HTMLResponse)
+async def youtube_manage_page(request: Request):
+    logger.info("YouTube manage page called")
+    return templates.TemplateResponse("manage.html", {"request": request})
+
+# 메인 시작점
+logger.info("Starting application...")
+logger.debug(f"Settings: {settings.PROJECT_NAME}, {settings.VERSION}") 

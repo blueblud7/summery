@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>유튜브 채널 및 키워드 관리</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">유튜브 채널 및 키워드 관리</h1>
+            <p class="text-gray-600">채널과 키워드를 등록하여 유튜브 영상을 요약하세요</p>
+            <div class="mt-4">
+                <a href="/" class="text-blue-500 hover:text-blue-700">
+                    <i class="fas fa-arrow-left mr-2"></i>메인으로 돌아가기
+                </a>
+            </div>
+        </header>
+
+        <!-- 탭 메뉴 -->
+        <div class="max-w-4xl mx-auto mb-6">
+            <div class="flex border-b">
+                <button class="tab-btn py-2 px-4 text-gray-700 font-semibold border-b-2 border-blue-500" data-target="channels-tab">
+                    <i class="fas fa-video mr-2"></i>채널 관리
+                </button>
+                <button class="tab-btn py-2 px-4 text-gray-500 font-semibold border-b-2 border-transparent" data-target="keywords-tab">
+                    <i class="fas fa-tags mr-2"></i>키워드 관리
+                </button>
+                <button class="tab-btn py-2 px-4 text-gray-500 font-semibold border-b-2 border-transparent" data-target="search-tab">
+                    <i class="fas fa-search mr-2"></i>영상 검색
+                </button>
+            </div>
+        </div>
+
+        <!-- 채널 관리 탭 -->
+        <div id="channels-tab" class="tab-content max-w-4xl mx-auto">
+            <!-- 채널 추가 폼 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">채널 추가</h2>
+                <form id="channel-form" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="channel-id">
+                            채널 ID
+                        </label>
+                        <input
+                            id="channel-id"
+                            type="text"
+                            class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:shadow-outline"
+                            placeholder="UCxxxxx 형식의 채널 ID"
+                            required
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="channel-title">
+                            채널 제목 (선택사항)
+                        </label>
+                        <input
+                            id="channel-title"
+                            type="text"
+                            class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:shadow-outline"
+                            placeholder="채널 제목을 입력하세요"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="channel-description">
+                            설명 (선택사항)
+                        </label>
+                        <textarea
+                            id="channel-description"
+                            class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:shadow-outline"
+                            rows="2"
+                            placeholder="채널에 대한 설명을 입력하세요"
+                        ></textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button
+                            type="submit"
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
+                        >
+                            채널 추가
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 채널 목록 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">등록된 채널</h2>
+                <div id="channels-list" class="divide-y">
+                    <!-- 자바스크립트로 채워질 영역 -->
+                    <div class="text-center py-4 text-gray-500">로딩 중...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 키워드 관리 탭 -->
+        <div id="keywords-tab" class="tab-content max-w-4xl mx-auto hidden">
+            <!-- 키워드 추가 폼 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">키워드 추가</h2>
+                <form id="keyword-form" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="keyword">
+                            키워드
+                        </label>
+                        <input
+                            id="keyword"
+                            type="text"
+                            class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:shadow-outline"
+                            placeholder="검색할 키워드를 입력하세요"
+                            required
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="keyword-description">
+                            설명 (선택사항)
+                        </label>
+                        <textarea
+                            id="keyword-description"
+                            class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:shadow-outline"
+                            rows="2"
+                            placeholder="키워드에 대한 설명을 입력하세요"
+                        ></textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button
+                            type="submit"
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
+                        >
+                            키워드 추가
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 키워드 목록 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">등록된 키워드</h2>
+                <div id="keywords-list" class="divide-y">
+                    <!-- 자바스크립트로 채워질 영역 -->
+                    <div class="text-center py-4 text-gray-500">로딩 중...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 영상 검색 탭 -->
+        <div id="search-tab" class="tab-content max-w-4xl mx-auto hidden">
+            <!-- 검색 폼 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">영상 검색</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="search-type">
+                            검색 유형
+                        </label>
+                        <select
+                            id="search-type"
+                            class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:shadow-outline"
+                        >
+                            <option value="channel">채널 ID로 검색</option>
+                            <option value="keyword">키워드로 검색</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="search-query">
+                            검색어
+                        </label>
+                        <select
+                            id="search-query"
+                            class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:shadow-outline"
+                        >
+                            <option value="">선택하세요</option>
+                            <!-- 자바스크립트로 채워질 영역 -->
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button
+                        id="search-btn"
+                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline"
+                    >
+                        <i class="fas fa-search mr-2"></i>검색
+                    </button>
+                </div>
+            </div>
+
+            <!-- 검색 결과 -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">검색 결과</h2>
+                <div id="search-results" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- 자바스크립트로 채워질 영역 -->
+                    <div class="text-center py-4 text-gray-500 col-span-2">검색 결과가 여기에 표시됩니다</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 컴포넌트 -->
+    <div id="modal" class="fixed inset-0 flex items-center justify-center hidden z-50">
+        <div class="absolute inset-0 bg-black opacity-50"></div>
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md z-10">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-gray-800" id="modal-title">제목</h2>
+                <button id="modal-close" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="modal-content">
+                <!-- 모달 내용이 여기에 들어갑니다 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 공통 함수
+        const apiBaseUrl = '/api/v1/youtube';
+        
+        // 유틸리티 함수
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+        
+        function showModal(title, content) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-content').innerHTML = content;
+            document.getElementById('modal').classList.remove('hidden');
+        }
+        
+        // 모달 닫기 버튼
+        document.getElementById('modal-close').addEventListener('click', () => {
+            document.getElementById('modal').classList.add('hidden');
+        });
+    </script>
+
+    <script src="/static/js/manage-channels.js"></script>
+    <script src="/static/js/manage-keywords.js"></script>
+    <script src="/static/js/search-videos.js"></script>
+
+    <script>
+        // 탭 전환 기능
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                // 모든 탭 버튼 비활성화
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('border-blue-500', 'text-gray-700');
+                    btn.classList.add('border-transparent', 'text-gray-500');
+                });
+                
+                // 클릭한 탭 버튼 활성화
+                button.classList.remove('border-transparent', 'text-gray-500');
+                button.classList.add('border-blue-500', 'text-gray-700');
+                
+                // 모든 탭 내용 숨기기
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                // 선택한 탭 내용 표시
+                const target = button.getAttribute('data-target');
+                document.getElementById(target).classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html> 
