@@ -23,106 +23,204 @@
             border-left: 4px solid #3B82F6;
             padding-left: 1rem;
         }
+        /* 사이드바 스타일 */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #1a202c;
+            color: white;
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+        .sidebar-toggle {
+            display: none;
+        }
+        .main-content {
+            margin-left: 250px;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .sidebar-toggle {
+                display: block;
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 51;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        .history-item {
+            transition: all 0.2s ease;
+        }
+        .history-item:hover {
+            background-color: #2d3748;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">AI 통합 요약 서비스</h1>
-            <p class="text-gray-600">텍스트, 유튜브 동영상, 문서를 쉽고 빠르게 요약합니다.</p>
-        </header>
+    <!-- 사이드바 토글 버튼 -->
+    <button id="sidebarToggle" class="sidebar-toggle p-2 bg-blue-600 text-white rounded">
+        <i class="fas fa-bars"></i>
+    </button>
 
-        <!-- 통합 요약 인터페이스 -->
-        <div class="max-w-5xl mx-auto bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-2xl font-semibold mb-4">여러 항목 요약</h2>
-            <p class="text-gray-700 mb-4">텍스트, 유튜브 링크, 문서 파일을 여러 개 추가하고 한 번에 요약할 수 있습니다.</p>
-            
-            <!-- 항목 추가 버튼 -->
-            <div class="flex flex-wrap gap-4 mb-6">
-                <button id="add-text-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-                    <i class="fas fa-font mr-2"></i>텍스트 추가
+    <!-- 사이드바 -->
+    <aside id="sidebar" class="sidebar overflow-y-auto">
+        <div class="p-4 border-b border-gray-800">
+            <h2 class="text-xl font-bold">AI 요약 도구</h2>
+        </div>
+        
+        <!-- 사이드바 탭 -->
+        <div class="border-b border-gray-800">
+            <div class="flex">
+                <button id="tab-summary" class="flex-1 px-4 py-2 text-center bg-blue-600 text-white">
+                    <i class="fas fa-file-alt mr-2"></i>요약
                 </button>
-                <button id="add-youtube-btn" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">
-                    <i class="fab fa-youtube mr-2"></i>유튜브 링크 추가
-                </button>
-                <button id="add-document-btn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
-                    <i class="fas fa-file-alt mr-2"></i>문서 파일 추가
-                </button>
-            </div>
-            
-            <!-- 공통 요약 설정 -->
-            <div class="bg-gray-100 p-4 rounded-lg mb-6">
-                <h3 class="text-lg font-medium mb-2">공통 요약 설정</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                        <label for="style-select" class="block text-sm font-medium text-gray-700 mb-1">요약 스타일</label>
-                        <select id="style-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="simple">간결하게</option>
-                            <option value="detailed">상세하게</option>
-                            <option value="expert">전문적으로</option>
-                            <option value="beginner">초보자용</option>
-                            <option value="academic">학술적으로</option>
-                            <option value="creative">창의적으로</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="format-select" class="block text-sm font-medium text-gray-700 mb-1">출력 형식</label>
-                        <select id="format-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="text">일반 텍스트</option>
-                            <option value="bullet">글머리 기호</option>
-                            <option value="structured">구조화된 형식</option>
-                            <option value="qa">Q&A 형식</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="language-select" class="block text-sm font-medium text-gray-700 mb-1">언어</label>
-                        <select id="language-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="ko">한국어</option>
-                            <option value="en">영어</option>
-                            <option value="ja">일본어</option>
-                            <option value="zh">중국어</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="max-length" class="block text-sm font-medium text-gray-700 mb-1">최대 길이</label>
-                        <input type="number" id="max-length" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="200" min="50" max="1000">
-                    </div>
-                </div>
-            </div>
-            
-            <!-- 항목 컨테이너 -->
-            <div id="items-container" class="mb-6">
-                <!-- 여기에 동적으로 항목 추가 -->
-                <div class="text-gray-500 text-center p-4 border border-dashed rounded-lg">
-                    위 버튼을 클릭하여 요약할 항목을 추가하세요.
-                </div>
-            </div>
-            
-            <!-- 요약 버튼 -->
-            <div class="text-center mb-6">
-                <button id="summarize-btn" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
-                    <i class="fas fa-magic mr-2"></i>모든 항목 요약하기
+                <button id="tab-history" class="flex-1 px-4 py-2 text-center hover:bg-gray-700">
+                    <i class="fas fa-history mr-2"></i>히스토리
                 </button>
             </div>
-            
-            <!-- 로딩 표시 -->
-            <div id="loading" class="hidden text-center p-4">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-                <p class="text-indigo-600 mt-2">요약 중입니다. 잠시만 기다려주세요...</p>
+        </div>
+        
+        <!-- 요약 탭 콘텐츠 -->
+        <div id="summary-tab-content" class="p-4">
+            <p class="text-sm mb-4">다양한 컨텐츠를 빠르게 요약하세요.</p>
+            <div class="space-y-3">
+                <button id="side-add-text" class="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-left">
+                    <i class="fas fa-font mr-2"></i>텍스트 요약
+                </button>
+                <button id="side-add-youtube" class="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-left">
+                    <i class="fab fa-youtube mr-2"></i>유튜브 요약
+                </button>
+                <button id="side-add-document" class="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-left">
+                    <i class="fas fa-file-alt mr-2"></i>문서 요약
+                </button>
             </div>
-            
-            <!-- 요약 결과 -->
-            <div id="results-container" class="hidden">
-                <h3 class="text-xl font-semibold mb-4 border-b pb-2">요약 결과</h3>
+        </div>
+        
+        <!-- 히스토리 탭 콘텐츠 -->
+        <div id="history-tab-content" class="p-4 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-sm font-medium">최근 요약 내역</h3>
+                <button id="refresh-history" class="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            <div id="history-items" class="space-y-2">
+                <p class="text-xs text-gray-400 text-center p-4">로딩 중...</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="main-content">
+        <div class="container mx-auto px-4 py-8">
+            <header class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">AI 통합 요약 서비스</h1>
+                <p class="text-gray-600">텍스트, 유튜브 동영상, 문서를 쉽고 빠르게 요약합니다.</p>
+            </header>
+
+            <!-- 통합 요약 인터페이스 -->
+            <div class="max-w-5xl mx-auto bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold mb-4">여러 항목 요약</h2>
+                <p class="text-gray-700 mb-4">텍스트, 유튜브 링크, 문서 파일을 여러 개 추가하고 한 번에 요약할 수 있습니다.</p>
                 
-                <!-- 전체 요약 -->
-                <div id="overall-summary" class="mb-6 p-4 bg-indigo-50 rounded-lg hidden">
-                    <h4 class="text-lg font-medium text-indigo-800 mb-2">전체 요약</h4>
-                    <div id="overall-summary-content" class="text-gray-800"></div>
+                <!-- 항목 추가 버튼 -->
+                <div class="flex flex-wrap gap-4 mb-6">
+                    <button id="add-text-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                        <i class="fas fa-font mr-2"></i>텍스트 추가
+                    </button>
+                    <button id="add-youtube-btn" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">
+                        <i class="fab fa-youtube mr-2"></i>유튜브 링크 추가
+                    </button>
+                    <button id="add-document-btn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
+                        <i class="fas fa-file-alt mr-2"></i>문서 파일 추가
+                    </button>
                 </div>
                 
-                <!-- 개별 요약 결과 컨테이너 -->
-                <div id="individual-results"></div>
+                <!-- 공통 요약 설정 -->
+                <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                    <h3 class="text-lg font-medium mb-2">공통 요약 설정</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label for="style-select" class="block text-sm font-medium text-gray-700 mb-1">요약 스타일</label>
+                            <select id="style-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="simple">간결하게</option>
+                                <option value="detailed">상세하게</option>
+                                <option value="expert">전문적으로</option>
+                                <option value="beginner">초보자용</option>
+                                <option value="academic">학술적으로</option>
+                                <option value="creative">창의적으로</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="format-select" class="block text-sm font-medium text-gray-700 mb-1">출력 형식</label>
+                            <select id="format-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="text">일반 텍스트</option>
+                                <option value="bullet">글머리 기호</option>
+                                <option value="structured">구조화된 형식</option>
+                                <option value="qa">Q&A 형식</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="language-select" class="block text-sm font-medium text-gray-700 mb-1">언어</label>
+                            <select id="language-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="ko">한국어</option>
+                                <option value="en">영어</option>
+                                <option value="ja">일본어</option>
+                                <option value="zh">중국어</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="max-length" class="block text-sm font-medium text-gray-700 mb-1">최대 길이</label>
+                            <input type="number" id="max-length" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="200" min="50" max="1000">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 항목 컨테이너 -->
+                <div id="items-container" class="mb-6">
+                    <!-- 여기에 동적으로 항목 추가 -->
+                    <div class="text-gray-500 text-center p-4 border border-dashed rounded-lg">
+                        위 버튼을 클릭하여 요약할 항목을 추가하세요.
+                    </div>
+                </div>
+                
+                <!-- 요약 버튼 -->
+                <div class="text-center mb-6">
+                    <button id="summarize-btn" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
+                        <i class="fas fa-magic mr-2"></i>모든 항목 요약하기
+                    </button>
+                </div>
+                
+                <!-- 로딩 표시 -->
+                <div id="loading" class="hidden text-center p-4">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                    <p class="text-indigo-600 mt-2">요약 중입니다. 잠시만 기다려주세요...</p>
+                </div>
+                
+                <!-- 요약 결과 -->
+                <div id="results-container" class="hidden">
+                    <h3 class="text-xl font-semibold mb-4 border-b pb-2">요약 결과</h3>
+                    
+                    <!-- 전체 요약 -->
+                    <div id="overall-summary" class="mb-6 p-4 bg-indigo-50 rounded-lg hidden">
+                        <h4 class="text-lg font-medium text-indigo-800 mb-2">전체 요약</h4>
+                        <div id="overall-summary-content" class="text-gray-800"></div>
+                    </div>
+                    
+                    <!-- 개별 요약 결과 컨테이너 -->
+                    <div id="individual-results"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -476,6 +574,169 @@
             
             return `${size.toFixed(1)} ${units[unitIndex]}`;
         }
+
+        // 사이드바 토글 기능
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('active');
+        });
+
+        // 탭 전환 기능
+        document.getElementById('tab-summary').addEventListener('click', function() {
+            document.getElementById('tab-summary').classList.add('bg-blue-600');
+            document.getElementById('tab-summary').classList.remove('hover:bg-gray-700');
+            document.getElementById('tab-history').classList.remove('bg-blue-600');
+            document.getElementById('tab-history').classList.add('hover:bg-gray-700');
+            
+            document.getElementById('summary-tab-content').classList.remove('hidden');
+            document.getElementById('history-tab-content').classList.add('hidden');
+        });
+
+        document.getElementById('tab-history').addEventListener('click', function() {
+            document.getElementById('tab-history').classList.add('bg-blue-600');
+            document.getElementById('tab-history').classList.remove('hover:bg-gray-700');
+            document.getElementById('tab-summary').classList.remove('bg-blue-600');
+            document.getElementById('tab-summary').classList.add('hover:bg-gray-700');
+            
+            document.getElementById('history-tab-content').classList.remove('hidden');
+            document.getElementById('summary-tab-content').classList.add('hidden');
+            
+            loadHistory();
+        });
+
+        // 사이드바 버튼 이벤트
+        document.getElementById('side-add-text').addEventListener('click', addTextItem);
+        document.getElementById('side-add-youtube').addEventListener('click', addYoutubeItem);
+        document.getElementById('side-add-document').addEventListener('click', addDocumentItem);
+        document.getElementById('refresh-history').addEventListener('click', loadHistory);
+
+        // 히스토리 불러오기
+        function loadHistory() {
+            const historyItems = document.getElementById('history-items');
+            historyItems.innerHTML = '<p class="text-xs text-gray-400 text-center p-4">로딩 중...</p>';
+            
+            fetch('/api/v1/history/list')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.items && data.items.length > 0) {
+                        historyItems.innerHTML = '';
+                        data.items.forEach(item => {
+                            const date = new Date(item.created_at);
+                            const formattedDate = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                            
+                            let icon = 'fas fa-file-alt';
+                            let typeLabel = '텍스트';
+                            let bgColor = 'bg-blue-100';
+                            let textColor = 'text-blue-800';
+                            
+                            if (item.summary_type === 'youtube') {
+                                icon = 'fab fa-youtube';
+                                typeLabel = '유튜브';
+                                bgColor = 'bg-red-100';
+                                textColor = 'text-red-800';
+                            } else if (item.summary_type === 'document') {
+                                icon = 'fas fa-file-pdf';
+                                typeLabel = '문서';
+                                bgColor = 'bg-green-100';
+                                textColor = 'text-green-800';
+                            }
+                            
+                            historyItems.innerHTML += `
+                                <div class="history-item p-2 rounded cursor-pointer" onclick="showHistoryDetail(${item.id})">
+                                    <div class="flex items-center">
+                                        <div class="mr-2 ${bgColor} ${textColor} p-1 rounded">
+                                            <i class="${icon}"></i>
+                                        </div>
+                                        <div class="flex-1 overflow-hidden">
+                                            <div class="text-xs text-gray-400">${formattedDate}</div>
+                                            <div class="text-sm truncate">${item.summary_text}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        historyItems.innerHTML = '<p class="text-xs text-gray-400 text-center p-4">히스토리가 없습니다.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('히스토리 로딩 오류:', error);
+                    historyItems.innerHTML = '<p class="text-xs text-red-400 text-center p-4">히스토리를 불러오는 중 오류가 발생했습니다.</p>';
+                });
+        }
+
+        // 히스토리 상세 정보 보기
+        function showHistoryDetail(id) {
+            fetch(`/api/v1/history/${id}`)
+                .then(response => response.json())
+                .then(item => {
+                    if (item) {
+                        // 결과 컨테이너 표시
+                        resultsContainer.classList.remove('hidden');
+                        
+                        // 개별 결과 컨테이너 초기화
+                        individualResults.innerHTML = '';
+                        
+                        // 결과 타입에 따라 다른 템플릿 사용
+                        if (item.summary_type === 'text') {
+                            const result = `
+                                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium text-blue-800 mb-2">
+                                        <i class="fas fa-file-alt mr-1"></i> 텍스트 요약
+                                    </h4>
+                                    <div class="mb-4">
+                                        <p class="text-gray-700">${item.original_text}</p>
+                                    </div>
+                                    <div class="summary-container mb-2">
+                                        <p>${item.summary_text}</p>
+                                    </div>
+                                </div>
+                            `;
+                            individualResults.innerHTML = result;
+                        } else if (item.summary_type === 'youtube') {
+                            const metadata = item.metadata || {};
+                            const result = `
+                                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium text-red-800 mb-2">
+                                        <i class="fab fa-youtube mr-1"></i> 유튜브 요약
+                                    </h4>
+                                    <div class="mb-2">
+                                        <strong>${metadata.video_title || '제목 정보 없음'}</strong>
+                                        <span class="text-sm text-gray-600 ml-2">(${metadata.channel_name || '채널 정보 없음'})</span>
+                                    </div>
+                                    <div class="summary-container mb-2">
+                                        <p>${item.summary_text}</p>
+                                    </div>
+                                </div>
+                            `;
+                            individualResults.innerHTML = result;
+                        } else if (item.summary_type === 'document') {
+                            const metadata = item.metadata || {};
+                            const result = `
+                                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                                    <h4 class="font-medium text-green-800 mb-2">
+                                        <i class="fas fa-file-alt mr-1"></i> 문서 요약
+                                    </h4>
+                                    <div class="mb-2">
+                                        <strong>${metadata.file_name || '파일명 정보 없음'}</strong>
+                                        <span class="text-sm text-gray-600 ml-2">(${metadata.file_type || '파일 타입 정보 없음'})</span>
+                                    </div>
+                                    <div class="summary-container mb-2">
+                                        <p>${item.summary_text}</p>
+                                    </div>
+                                </div>
+                            `;
+                            individualResults.innerHTML = result;
+                        }
+                        
+                        // 스크롤 이동
+                        resultsContainer.scrollIntoView({ behavior: 'smooth' });
+                    }
+                })
+                .catch(error => {
+                    console.error('히스토리 상세 정보 불러오기 오류:', error);
+                    alert('히스토리 정보를 불러오는 중 오류가 발생했습니다.');
+                });
+        }
     </script>
 </body>
-</html> 
+</html>

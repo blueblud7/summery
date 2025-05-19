@@ -1,9 +1,12 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Depends
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from app.services.summarizer_service import SummarizerService
 from app.services.youtube_service import YouTubeService
 from app.services.document_service import DocumentService
+from app.services.history_service import HistoryService
+from app.db.database import get_db
+from sqlalchemy.orm import Session
 from app.core.config import settings
 import os
 import tempfile
@@ -59,7 +62,7 @@ class BatchSummarizeResponse(BaseModel):
     overall_summary: Optional[str] = None
 
 @router.post("/summarize", response_model=SummarizeResponse)
-async def summarize_text(request: SummarizeRequest):
+async def summarize_text(request: SummarizeRequest, db: Session = Depends(get_db)):
     try:
         # 모델 확인 및 유효성 검사
         model = request.model or settings.DEFAULT_MODEL
@@ -89,13 +92,23 @@ async def summarize_text(request: SummarizeRequest):
         )
         summarization_result["quality_score"] = quality_score
         
+        # 히스토리에 저장
+        history_service = HistoryService(db)
+        history_service.save_text_summary(
+            original_text=request.text,
+            summary_text=summarization_result["summary"],
+            key_phrases=key_phrases,
+            model_used=model,
+            quality_score=quality_score.get("overall") if quality_score else None
+        )
+        
         return summarization_result
     except Exception as e:
         logger.error(f"Error in summarization: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/summarize/youtube", response_model=Dict[str, Any])
-async def summarize_youtube(request: YouTubeSummarizeRequest):
+async def summarize_youtube(request: YouTubeSummarizeRequest, db: Session = Depends(get_db)):
     try:
         # 모델 확인 및 유효성 검사
         model = request.model or settings.DEFAULT_MODEL
@@ -111,6 +124,18 @@ async def summarize_youtube(request: YouTubeSummarizeRequest):
         
         if "error" in video_result:
             raise HTTPException(status_code=500, detail=video_result["error"])
+        
+        # 히스토리에 저장
+        if "summary" in video_result:
+            history_service = HistoryService(db)
+            history_service.save_youtube_summary(
+                video_url=request.url,
+                video_title=video_result.get("title", "제목 없음"),
+                channel_name=video_result.get("channel", "채널 정보 없음"),
+                original_transcript=video_result.get("transcript", ""),
+                summary_text=video_result["summary"],
+                model_used=model
+            )
             
         return video_result
     except Exception as e:
@@ -124,7 +149,8 @@ async def summarize_document(
     max_length: int = Form(200),
     language: str = Form("ko"),
     format: str = Form("text"),
-    model: Optional[str] = Form(None)
+    model: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
 ):
     try:
         # 모델 확인 및 유효성 검사
@@ -170,6 +196,16 @@ async def summarize_document(
                 "text_preview": text_preview,
                 "summary": summary_result["summary"]
             }
+            
+            # 히스토리에 저장
+            history_service = HistoryService(db)
+            history_service.save_document_summary(
+                file_name=file.filename,
+                file_type=file_extension,
+                original_text=text,
+                summary_text=summary_result["summary"],
+                model_used=use_model
+            )
             
             return result
         finally:
