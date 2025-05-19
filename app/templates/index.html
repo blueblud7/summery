@@ -428,7 +428,7 @@
                                 <strong>${result.title || '제목 정보 없음'}</strong>
                                 <span class="text-sm text-gray-600 ml-2">(${result.channel || '채널 정보 없음'})</span>
                             </div>
-                            <div class="summary-container mt-2">${result.summary || '요약 실패'}</div>`
+                            <div class="summary-container mt-2">${result.summary || result.transcript || '요약 실패'}</div>`
                         }
                     </div>
                 `;

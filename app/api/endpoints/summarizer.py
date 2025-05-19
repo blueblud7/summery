@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from app.services.summarizer_service import SummarizerService
 from app.services.youtube_service import YouTubeService
+from app.services.document_service import DocumentService
 from app.core.config import settings
 import os
 import tempfile
@@ -11,7 +12,8 @@ import logging
 
 router = APIRouter()
 summarizer_service = SummarizerService()
-youtube_service = YouTubeService(use_mock_data=True)
+youtube_service = YouTubeService(use_mock_data=False)
+document_service = DocumentService()
 logger = logging.getLogger(__name__)
 
 class SummarizeRequest(BaseModel):
@@ -139,23 +141,12 @@ async def summarize_document(
             
         # 파일 처리
         try:
-            # 현재는 파일 확장자 기반 간단 처리
+            # 문서 서비스를 사용하여 파일 처리
             file_extension = suffix.lower()
-            text = ""
+            text = document_service.extract_text_from_file(temp_path)
             
-            if file_extension == '.txt':
-                with open(temp_path, 'r', encoding='utf-8') as f:
-                    text = f.read()
-            elif file_extension == '.pdf':
-                # PDF 파일 처리 로직 추가 (별도 모듈 필요)
-                from app.services.document_service import extract_text_from_pdf
-                text = extract_text_from_pdf(temp_path)
-            elif file_extension in ['.docx', '.doc']:
-                # Word 파일 처리 로직 추가 (별도 모듈 필요)
-                from app.services.document_service import extract_text_from_docx
-                text = extract_text_from_docx(temp_path)
-            else:
-                raise HTTPException(status_code=400, detail=f"지원하지 않는 파일 형식: {file_extension}")
+            if not text:
+                raise HTTPException(status_code=400, detail=f"파일에서 텍스트를 추출할 수 없습니다: {file.filename}")
             
             # 요약 수행
             summary_result = summarizer_service.summarize_text(

@@ -11,7 +11,7 @@ from googleapiclient.errors import HttpError
 logger = logging.getLogger(__name__)
 
 class YouTubeService:
-    def __init__(self, use_mock_data: bool = True):
+    def __init__(self, use_mock_data: bool = False):
         # API 키 체크
         self.api_key = settings.YOUTUBE_API_KEY
         self.use_mock_data = use_mock_data or not self.api_key
@@ -262,6 +262,7 @@ class YouTubeService:
     def get_transcript(self, video_id: str, language_code: str = 'ko') -> List[Dict[str, Any]]:
         """
         유튜브 동영상의 자막을 가져옵니다.
+        언어 우선순위: 지정 언어 -> 자동 생성된 지정 언어 -> 영어 -> 어떤 언어든 가능한 것 -> 대체 방법(pytube) 시도
         """
         # 모의 데이터 반환
         if self.use_mock_data:
@@ -279,32 +280,155 @@ class YouTubeService:
             from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
             
             try:
+                # 1. 먼저 지정된 언어로 시도
                 transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=[language_code])
+                logger.info(f"지정된 언어({language_code})로 자막을 찾았습니다.")
                 return transcript
-            except NoTranscriptFound:
-                # 지정된 언어로 자막을 찾을 수 없는 경우, 자동 생성된 자막 시도
-                logger.warning(f"지정된 언어({language_code})로 자막을 찾을 수 없습니다. 자동 생성된 자막을 시도합니다.")
+            except Exception as e:
+                logger.warning(f"지정된 언어({language_code})로 자막을 찾을 수 없습니다: {str(e)}")
+                
                 try:
-                    transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=[f"{language_code}-generated"])
+                    # 2. 자동 생성된 지정 언어 자막 시도
+                    auto_language_code = f"{language_code}-generated"
+                    transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=[auto_language_code])
+                    logger.info(f"자동 생성된 자막({auto_language_code})을 찾았습니다.")
                     return transcript
-                except:
-                    # 자동 생성된 자막도 없는 경우, 영어 자막 시도
-                    logger.warning("자동 생성된 자막도 찾을 수 없습니다. 영어 자막을 시도합니다.")
+                except Exception as e:
+                    logger.warning(f"자동 생성된 자막도 찾을 수 없습니다: {str(e)}")
+                    
                     try:
+                        # 3. 영어 자막 시도
                         transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
+                        logger.info("영어 자막을 찾았습니다.")
                         return transcript
-                    except:
-                        logger.error("어떤 자막도 찾을 수 없습니다.")
-                        return []
-            except TranscriptsDisabled:
-                logger.error("이 동영상은 자막이 비활성화되어 있습니다.")
-                return []
+                    except Exception as e:
+                        logger.warning(f"영어 자막도 찾을 수 없습니다: {str(e)}")
+                        
+                        try:
+                            # 4. 사용 가능한 아무 자막이나 시도
+                            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+                            first_transcript = list(transcript_list)[0]
+                            transcript = first_transcript.fetch()
+                            logger.info(f"사용 가능한 자막을 찾았습니다: {first_transcript.language_code}")
+                            return transcript
+                        except Exception as e:
+                            logger.warning(f"사용 가능한 자막을 찾을 수 없습니다: {str(e)}")
+                            
+                            # 5. 대체 방법: pytube 시도
+                            return self._get_transcript_via_pytube(video_id)
+                                
         except ImportError:
             logger.error("youtube_transcript_api 모듈을 설치해주세요: pip install youtube-transcript-api")
-            return []
+            # pytube로 대체 시도
+            return self._get_transcript_via_pytube(video_id)
+            
         except Exception as e:
             logger.error(f"자막 가져오기 오류: {str(e)}")
             return []
+    
+    def _get_transcript_via_pytube(self, video_id: str) -> List[Dict[str, Any]]:
+        """
+        pytube를 사용하여 자막을 가져오는 대체 방법
+        """
+        try:
+            from pytube import YouTube
+            
+            # YouTube 객체 생성
+            url = f"https://www.youtube.com/watch?v={video_id}"
+            yt = YouTube(url)
+            
+            # 자막 가져오기 시도
+            caption_tracks = yt.captions
+            if caption_tracks:
+                # 첫 번째로 사용 가능한 자막 선택
+                caption = next(iter(caption_tracks.values()))
+                xml_captions = caption.xml_captions
+                
+                # XML 자막을 파싱하여 텍스트 추출
+                import xml.etree.ElementTree as ET
+                try:
+                    root = ET.fromstring(xml_captions)
+                    transcript = []
+                    for i, element in enumerate(root.findall('./text')):
+                        start = float(element.get('start', i * 5.0))
+                        duration = float(element.get('dur', 5.0))
+                        text = element.text or ""
+                        transcript.append({
+                            "text": text.strip(),
+                            "start": start,
+                            "duration": duration
+                        })
+                    logger.info("pytube를 사용하여 자막을 가져왔습니다.")
+                    return transcript
+                except Exception as e:
+                    logger.error(f"pytube XML 자막 파싱 오류: {str(e)}")
+                    
+                    # 단순 텍스트로 반환하는 대체 방법
+                    caption_text = caption.generate_srt_captions()
+                    if caption_text:
+                        lines = caption_text.split('\n\n')
+                        transcript = []
+                        for i, line in enumerate(lines):
+                            if line.strip():
+                                try:
+                                    parts = line.split('\n')
+                                    if len(parts) >= 3:
+                                        # SRT 형식: 인덱스, 시간, 텍스트
+                                        time_parts = parts[1].split(' --> ')
+                                        start_time = self._srt_time_to_seconds(time_parts[0])
+                                        text = ' '.join(parts[2:])
+                                        transcript.append({
+                                            "text": text.strip(),
+                                            "start": start_time,
+                                            "duration": 5.0  # 추정값
+                                        })
+                                except Exception as parse_err:
+                                    logger.warning(f"SRT 라인 파싱 오류: {str(parse_err)}")
+                        
+                        if transcript:
+                            logger.info("pytube를 사용하여 SRT 자막을 가져왔습니다.")
+                            return transcript
+            
+            # 자막이 없는 경우 비디오 제목과 설명으로 대체
+            logger.warning("자막을 찾을 수 없어 비디오 제목과 설명으로 대체합니다.")
+            title = yt.title or ""
+            description = yt.description or ""
+            if title or description:
+                transcript = [
+                    {"text": title, "start": 0.0, "duration": 5.0}
+                ]
+                
+                # 설명을 여러 조각으로 나누기
+                if description:
+                    paragraphs = description.split('\n\n')
+                    for i, para in enumerate(paragraphs):
+                        if para.strip():
+                            transcript.append({
+                                "text": para.strip(),
+                                "start": (i + 1) * 5.0,
+                                "duration": 5.0
+                            })
+                
+                return transcript
+                
+        except ImportError:
+            logger.error("pytube 모듈을 설치해주세요: pip install pytube")
+        except Exception as e:
+            logger.error(f"pytube를 사용한 자막 가져오기 오류: {str(e)}")
+        
+        return []
+    
+    def _srt_time_to_seconds(self, time_str: str) -> float:
+        """
+        SRT 시간 형식(HH:MM:SS,MS)을 초 단위 float로 변환
+        """
+        try:
+            hours, minutes, seconds = time_str.replace(',', '.').split(':')
+            total_seconds = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+            return total_seconds
+        except Exception as e:
+            logger.warning(f"SRT 시간 변환 오류: {str(e)}")
+            return 0.0
     
     def transcript_to_text(self, transcript: List[Dict[str, Any]]) -> str:
         """

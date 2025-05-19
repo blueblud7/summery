@@ -14,4 +14,6 @@ pytube==15.0.0
 pdfdocument==3.3.0
 markdown==3.5.2
 beautifulsoup4==4.12.2
-lxml==4.9.3 
+lxml==4.9.3
+PyPDF2==3.0.1
+python-docx==1.0.1 
