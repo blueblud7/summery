@@ -33,6 +33,19 @@ class Settings(BaseSettings):
     
     # 보안 설정
     SECRET_KEY: str = "your-secret-key-here"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30 * 24 * 60  # 30일
+    
+    # OAuth 설정
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    FACEBOOK_CLIENT_ID: str = ""
+    FACEBOOK_CLIENT_SECRET: str = ""
+    OAUTH_REDIRECT_URL: str = "http://localhost:8000/api/v1/auth/callback"
+    
+    # 구독 설정
+    PREMIUM_MONTHLY_PRICE: float = 9.99
+    ENTERPRISE_MONTHLY_PRICE: float = 29.99
     
     # 데이터베이스 설정
     DB_PATH: str = "./data/app.db"

@@ -1,7 +1,10 @@
 from sqlalchemy.orm import Session
 from app.db.models import YoutubeChannel, YoutubeKeyword, Video
 from app.models.youtube import YoutubeChannelCreate, YoutubeChannelUpdate, YoutubeKeywordCreate, YoutubeKeywordUpdate
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict, Any, Tuple
+from datetime import datetime, timedelta
+from app.models.models import User
+from app.utils.auth import get_password_hash, verify_password
 import logging
 
 logger = logging.getLogger(__name__)
@@ -142,4 +145,86 @@ def save_video(db: Session, video_data: Dict[str, Any]) -> Video:
     db.add(db_video)
     db.commit()
     db.refresh(db_video)
-    return db_video 
+    return db_video
+
+# User CRUD operations
+def get_user(db: Session, user_id: int) -> Optional[User]:
+    """ID로 사용자 조회"""
+    return db.query(User).filter(User.id == user_id).first()
+
+def get_user_by_email(db: Session, email: str) -> Optional[User]:
+    """이메일로 사용자 조회"""
+    return db.query(User).filter(User.email == email).first()
+
+def get_user_by_oauth(db: Session, oauth_provider: str, oauth_id: str) -> Optional[User]:
+    """OAuth 제공자 및 ID로 사용자 조회"""
+    return db.query(User).filter(
+        User.oauth_provider == oauth_provider,
+        User.oauth_id == oauth_id
+    ).first()
+
+def create_user(db: Session, username: str, email: str, password: str) -> User:
+    """일반 사용자 생성"""
+    hashed_password = get_password_hash(password)
+    db_user = User(
+        username=username,
+        email=email,
+        hashed_password=hashed_password,
+        subscription_tier="free"
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def create_social_user(
+    db: Session, 
+    username: str, 
+    email: str, 
+    oauth_provider: str, 
+    oauth_id: str, 
+    profile_image: Optional[str] = None
+) -> User:
+    """소셜 로그인 사용자 생성"""
+    db_user = User(
+        username=username,
+        email=email,
+        oauth_provider=oauth_provider,
+        oauth_id=oauth_id,
+        profile_image=profile_image,
+        subscription_tier="free"
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def update_user_subscription(
+    db: Session, 
+    user_id: int, 
+    subscription_tier: str, 
+    duration_days: int = 30
+) -> Optional[User]:
+    """사용자 구독 상태 업데이트"""
+    user = get_user(db, user_id)
+    if not user:
+        return None
+    
+    user.subscription_tier = subscription_tier
+    user.subscription_start = datetime.utcnow()
+    user.subscription_end = datetime.utcnow() + timedelta(days=duration_days)
+    user.payment_status = "active"
+    
+    db.commit()
+    db.refresh(user)
+    return user
+
+def is_subscription_active(user: User) -> bool:
+    """사용자 구독이 활성 상태인지 확인"""
+    if user.subscription_tier == "free":
+        return True
+    
+    if not user.subscription_end:
+        return False
+    
+    return user.subscription_end > datetime.utcnow() and user.payment_status == "active" 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean, Enum, Table
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean, Enum, Table, Float, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base_class import Base
@@ -32,9 +32,21 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    hashed_password = Column(String, nullable=True)  # 소셜 로그인의 경우 비밀번호가 없을 수 있음
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
+    
+    # 소셜 로그인 관련 필드
+    oauth_provider = Column(String, nullable=True)  # 'google', 'facebook' 등
+    oauth_id = Column(String, nullable=True, index=True)  # 소셜 제공자에서의 ID
+    profile_image = Column(String, nullable=True)  # 프로필 이미지 URL
+    
+    # 유료 회원 관련 필드
+    subscription_tier = Column(String, default="free")  # 'free', 'premium', 'enterprise'
+    subscription_start = Column(DateTime(timezone=True), nullable=True)
+    subscription_end = Column(DateTime(timezone=True), nullable=True)
+    payment_status = Column(String, nullable=True)  # 'active', 'canceled', 'expired'
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -105,4 +117,16 @@ class SearchHistory(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     query = Column(String)
     filters = Column(Text)  # JSON 형식으로 저장된 필터
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class SummaryHistory(Base):
+    __tablename__ = "summary_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    summary_type = Column(String)  # 'text', 'youtube', 'document'
+    summary_text = Column(Text)
+    original_text = Column(Text, nullable=True)
+    source_info = Column(Text, nullable=True)  # JSON 형식으로 저장된 소스 정보
+    summary_params = Column(Text, nullable=True)  # JSON 형식으로 저장된 요약 파라미터
     created_at = Column(DateTime(timezone=True), server_default=func.now()) 

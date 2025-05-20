@@ -4,10 +4,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.cors import CORSMiddleware
-from app.api.endpoints import summarizer, history, youtube_manage
+from app.api.endpoints import summarizer, history, youtube_manage, auth
 from app.core.config import settings
 from app.db.database import init_db
 from app.db.models import YoutubeChannel, YoutubeKeyword, Video, SummaryHistory
+from app.utils.auth import get_current_active_user, get_premium_user
+from app.models.models import User
 import os
 
 # 로깅 설정
@@ -41,6 +43,7 @@ logger.info("Registering routers...")
 app.include_router(summarizer.router, prefix="/api/v1", tags=["summarizer"])
 app.include_router(history.router, prefix="/api/v1/history", tags=["history"])
 app.include_router(youtube_manage.router, prefix="/api/v1/youtube", tags=["youtube"])
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 
 @app.on_event("startup")
 async def startup_db_client():
@@ -51,6 +54,58 @@ async def startup_db_client():
         logger.info("데이터베이스 초기화 완료")
     except Exception as e:
         logger.error(f"데이터베이스 초기화 오류: {e}")
+
+# 계정 관리 페이지
+@app.get("/account", response_class=HTMLResponse)
+async def account_page(request: Request, current_user: User = Depends(get_current_active_user)):
+    """
+    Returns the account management page.
+    """
+    logger.info("Account page called")
+    return templates.TemplateResponse(
+        "account.html", 
+        {
+            "request": request, 
+            "user": current_user,
+            "is_premium": current_user.subscription_tier != "free"
+        }
+    )
+
+# 구독 페이지
+@app.get("/subscription", response_class=HTMLResponse)
+async def subscription_page(request: Request, current_user: User = Depends(get_current_active_user)):
+    """
+    Returns the subscription page.
+    """
+    logger.info("Subscription page called")
+    return templates.TemplateResponse(
+        "subscription.html", 
+        {
+            "request": request, 
+            "user": current_user,
+            "premium_price": settings.PREMIUM_MONTHLY_PRICE,
+            "enterprise_price": settings.ENTERPRISE_MONTHLY_PRICE,
+            "current_tier": current_user.subscription_tier
+        }
+    )
+
+# 로그인 페이지
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """
+    로그인 페이지를 반환합니다.
+    """
+    logger.info("Login page called")
+    return templates.TemplateResponse("login.html", {"request": request})
+
+# 회원가입 페이지
+@app.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    """
+    회원가입 페이지를 반환합니다.
+    """
+    logger.info("Register page called")
+    return templates.TemplateResponse("register.html", {"request": request})
 
 # 루트 페이지
 @app.get("/", response_class=HTMLResponse)

@@ -119,6 +119,16 @@
                 <p class="text-xs text-gray-400 text-center p-4">Loading...</p>
             </div>
         </div>
+        
+        <!-- 사용자 인증 영역 -->
+        <div class="mt-auto p-4 border-t border-gray-800">
+            <div id="auth-container">
+                <!-- 인증 상태에 따라 동적으로 채워질 영역 -->
+                <div class="text-center">
+                    <div class="loading-spinner inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                </div>
+            </div>
+        </div>
     </aside>
 
     <!-- 메인 콘텐츠 -->
@@ -245,9 +255,13 @@
         const overallSummaryContent = document.getElementById('overall-summary-content');
         const maxLengthSelect = document.getElementById('max-length-select');
         const customLength = document.getElementById('custom-length');
+        const authContainer = document.getElementById('auth-container');
         
         // 초기화 및 이벤트 리스너
         document.addEventListener('DOMContentLoaded', function() {
+            // 인증 상태 확인
+            checkAuthStatus();
+            
             // 항목 추가 버튼 이벤트 리스너
             addTextBtn.addEventListener('click', addTextItem);
             addYoutubeBtn.addEventListener('click', addYoutubeItem);
@@ -761,6 +775,80 @@
                 return parseInt(customLength.value);
             } else {
                 return parseInt(maxLengthSelect.value);
+            }
+        }
+
+        // 인증 상태 확인 함수
+        async function checkAuthStatus() {
+            const token = localStorage.getItem('access_token');
+            
+            if (!token) {
+                // 로그인되지 않음
+                authContainer.innerHTML = `
+                    <p class="text-sm text-gray-400 mb-2">로그인하여 모든 기능 이용하기</p>
+                    <div class="flex space-x-2">
+                        <a href="/login" class="flex-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-center text-sm">
+                            <i class="fas fa-sign-in-alt mr-1"></i>로그인
+                        </a>
+                        <a href="/register" class="flex-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-center text-sm">
+                            <i class="fas fa-user-plus mr-1"></i>회원가입
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/v1/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    
+                    // 로그인됨
+                    authContainer.innerHTML = `
+                        <div class="flex items-center mb-2">
+                            <div class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center mr-2">
+                                <span class="text-white font-bold">${user.username.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">${user.username}</p>
+                                <p class="text-xs text-gray-400">${user.subscription_tier} 사용자</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <a href="/account" class="flex-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-center text-sm">
+                                <i class="fas fa-user-cog mr-1"></i>계정
+                            </a>
+                            <button id="logout-btn" class="flex-1 px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-center text-sm">
+                                <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+                            </button>
+                        </div>
+                    `;
+                    
+                    // 로그아웃 버튼 이벤트 리스너
+                    document.getElementById('logout-btn').addEventListener('click', function() {
+                        localStorage.removeItem('access_token');
+                        window.location.reload();
+                    });
+                    
+                } else {
+                    // 토큰 만료 등의 이유로 인증 실패
+                    localStorage.removeItem('access_token');
+                    checkAuthStatus(); // 다시 확인
+                }
+            } catch (error) {
+                console.error('인증 확인 오류:', error);
+                authContainer.innerHTML = `
+                    <p class="text-sm text-red-400">서버 연결 오류</p>
+                    <div class="flex space-x-2 mt-2">
+                        <a href="/login" class="flex-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-center text-sm">로그인</a>
+                        <a href="/register" class="flex-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-center text-sm">회원가입</a>
+                    </div>
+                `;
             }
         }
     </script>

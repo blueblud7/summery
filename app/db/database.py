@@ -40,8 +40,8 @@ def get_db():
 def init_db():
     try:
         logger.info("데이터베이스 테이블 생성 시작")
-        # 여기서 모델을 직접 임포트하지 않고 Base.metadata.create_all만 호출
-        # 모델 클래스는 이미 app/db/models.py에서 Base를 상속받아 정의되어 있음
+        # 모델 임포트
+        from app.models.models import User, Channel, Keyword, Tag, Video, SearchHistory, SummaryHistory
         Base.metadata.create_all(bind=engine)
         logger.info("데이터베이스 테이블 생성 완료")
     except Exception as e:
