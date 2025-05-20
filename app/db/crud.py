@@ -50,19 +50,25 @@ def update_youtube_channel(db: Session, channel_id: str, channel: YoutubeChannel
     return None
 
 def delete_youtube_channel(db: Session, channel_id: str) -> bool:
-    db_channel = get_youtube_channel_by_id(db, channel_id)
-    if db_channel:
-        logger.info(f"채널 삭제 시작: {channel_id}")
-        try:
+    """
+    채널 ID로 유튜브 채널을 삭제합니다.
+    DB에 저장된 ID가 URL 형태일 수도 있으므로 직접 쿼리합니다.
+    """
+    logger.info(f"채널 삭제 시작: {channel_id}")
+    try:
+        # 직접 DB에서 채널 쿼리
+        db_channel = db.query(YoutubeChannel).filter(YoutubeChannel.channel_id == channel_id).first()
+        if db_channel:
             db.delete(db_channel)
             db.commit()
             logger.info(f"채널 삭제 완료: {channel_id}")
             return True
-        except Exception as e:
-            db.rollback()
-            logger.error(f"채널 삭제 실패: {str(e)}")
-            raise e
-    return False
+        logger.warning(f"삭제할 채널을 찾을 수 없음: {channel_id}")
+        return False
+    except Exception as e:
+        db.rollback()
+        logger.error(f"채널 삭제 실패: {str(e)}")
+        raise e
 
 # 키워드 CRUD 연산
 def create_youtube_keyword(db: Session, keyword: YoutubeKeywordCreate) -> YoutubeKeyword:

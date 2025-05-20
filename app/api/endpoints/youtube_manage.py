@@ -147,48 +147,35 @@ def delete_channel(channel_id: str, db: Session = Depends(get_db)):
     try:
         logger.info(f"채널 삭제 요청: {channel_id}")
         
-        # 실제 채널 ID를 찾기 위한 변수
-        real_channel_id = None
-        channel_found = False
+        # URL 디코딩이 필요한 경우
+        try:
+            from urllib.parse import unquote
+            decoded_channel_id = unquote(channel_id)
+            if decoded_channel_id != channel_id:
+                logger.info(f"URL 디코딩된 채널 ID: {decoded_channel_id}")
+                channel_id = decoded_channel_id
+        except Exception as e:
+            logger.warning(f"URL 디코딩 중 오류: {str(e)}")
         
-        # URL 형태의 채널 ID인 경우 실제 채널 ID 추출 시도
-        if channel_id.startswith('http') or channel_id.startswith('@') or channel_id.startswith('c/') or channel_id.startswith('user/'):
-            youtube_service = YouTubeService()
-            channel_info = youtube_service.get_channel_info(channel_id)
-            if "error" not in channel_info:
-                real_channel_id = channel_info['channel_id']
-                logger.info(f"URL에서 추출한 실제 채널 ID: {real_channel_id}")
-                
-                # 실제 채널 ID로 삭제 시도
-                db_channel = crud.get_youtube_channel_by_id(db, channel_id=real_channel_id)
-                if db_channel:
-                    logger.info(f"실제 채널 ID로 삭제: {real_channel_id}")
-                    crud.delete_youtube_channel(db=db, channel_id=real_channel_id)
-                    channel_found = True
+        # 삭제 시도
+        result = crud.delete_youtube_channel(db=db, channel_id=channel_id)
         
-        # 실제 채널 ID로 찾지 못한 경우, 원본 채널 ID로 시도
-        if not channel_found:
-            # 원본 채널 ID로 삭제 시도
-            db_channel = crud.get_youtube_channel_by_id(db, channel_id=channel_id)
-            if db_channel:
-                logger.info(f"원본 채널 ID로 삭제: {channel_id}")
-                crud.delete_youtube_channel(db=db, channel_id=channel_id)
-                channel_found = True
-            else:
-                # 직접 쿼리로 시도 (URL이 그대로 저장된 경우)
-                direct_query = db.query(DBYoutubeChannel).filter(DBYoutubeChannel.channel_id == channel_id).first()
-                if direct_query:
-                    logger.info(f"직접 쿼리로 채널 삭제: {channel_id}")
-                    crud.delete_youtube_channel(db=db, channel_id=channel_id)
-                    channel_found = True
-        
-        if not channel_found:
+        if not result:
+            # DB에 있는 모든 채널을 불러와서 ID가 포함된 채널이 있는지 확인
+            all_channels = crud.get_youtube_channels(db)
+            for db_channel in all_channels:
+                if channel_id in db_channel.channel_id:
+                    logger.info(f"부분 일치하는 채널 삭제: {db_channel.channel_id}")
+                    crud.delete_youtube_channel(db=db, channel_id=db_channel.channel_id)
+                    return Response(status_code=status.HTTP_204_NO_CONTENT)
+            
+            # 채널을 찾지 못한 경우
             logger.warning(f"삭제할 채널을 찾을 수 없음: {channel_id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="채널을 찾을 수 없습니다."
             )
-            
+        
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     except HTTPException:
         raise

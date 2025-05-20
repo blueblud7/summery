@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     
     # 모델 설정
     DEFAULT_MODEL: str = "gpt-4o-mini"
-    AVAILABLE_MODELS: List[str] = ["gpt-3.5-turbo", "gpt-4o-mini", "gpt-4"]
+    AVAILABLE_MODELS: List[str] = ["gpt-4o-mini"]
     
     # 기본 요약 설정
     DEFAULT_MAX_LENGTH: int = 200

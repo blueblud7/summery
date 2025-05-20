@@ -92,13 +92,20 @@ async function deleteChannel(channelId) {
         
         const response = await fetch(`/api/v1/youtube/channels/${encodedChannelId}`, {
             method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
         
         if (!response.ok) {
             let errorMessage = '채널 삭제 실패';
             try {
-                const error = await response.json();
-                errorMessage = error.detail || errorMessage;
+                if (response.headers.get('content-type')?.includes('application/json')) {
+                    const error = await response.json();
+                    errorMessage = error.detail || errorMessage;
+                } else {
+                    errorMessage = `채널 삭제 실패 (상태 코드: ${response.status})`;
+                }
             } catch (parseError) {
                 console.error('응답 파싱 오류:', parseError);
             }

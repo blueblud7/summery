@@ -570,114 +570,56 @@ class YouTubeService:
         try:
             from pytube import YouTube, innertube
             
-            # InnerTube 클라이언트 생성 (YouTube API 내부 접근)
-            client = innertube.InnerTube(client="WEB", use_oauth=False, use_json=True)
+            logger.info(f"먼저 pytube를 통해 직접 자막을 가져오려고 시도합니다: {video_id}")
+            
+            # InnerTube 클라이언트 생성 (최신 버전 호환성)
+            try:
+                # 최신 버전 pytube는 use_json 매개변수가 없음
+                client = innertube.InnerTube(client="WEB")
+            except Exception as e:
+                logger.error(f"InnerTube 클라이언트 생성 오류: {str(e)}")
+                # 다른 방법으로 자막 가져오기 시도
+                return []
             
             # 비디오 정보 및 자막 트랙 가져오기
-            result = client.get_transcript(video_id)
-            if not result:
-                logger.warning("InnerTube 클라이언트로 자막 가져오기 실패")
-                return []
-            
-            # 타임 텍스트 트랙 확인
-            if 'actions' not in result:
-                logger.warning("InnerTube 응답에 'actions' 키가 없습니다")
-                return []
-            
-            # 자막 트랙 처리
-            transcript = []
             try:
-                # 새로운 InnerTube API 구조 접근
-                actions = result['actions']
-                for action in actions:
-                    if 'updateEngagementPanelAction' in action:
-                        panel_content = action['updateEngagementPanelAction']['content']
-                        if 'transcriptRenderer' in panel_content:
-                            transcript_renderer = panel_content['transcriptRenderer']
-                            if 'body' in transcript_renderer:
-                                body = transcript_renderer['body']
-                                if 'transcriptBodyRenderer' in body:
-                                    body_renderer = body['transcriptBodyRenderer']
-                                    if 'cueGroups' in body_renderer:
-                                        cue_groups = body_renderer['cueGroups']
-                                        for cue_group in cue_groups:
-                                            if 'transcriptCueGroupRenderer' in cue_group:
-                                                cue_group_renderer = cue_group['transcriptCueGroupRenderer']
-                                                if 'cues' in cue_group_renderer:
-                                                    cues = cue_group_renderer['cues']
-                                                    for cue in cues:
-                                                        if 'transcriptCueRenderer' in cue:
-                                                            cue_renderer = cue['transcriptCueRenderer']
-                                                            if 'cue' in cue_renderer and 'startOffsetMs' in cue_renderer:
-                                                                start = float(cue_renderer['startOffsetMs']) / 1000.0
-                                                                text = cue_renderer['cue']['simpleText']
-                                                                duration = 5.0  # 기본값
-                                                                if 'durationMs' in cue_renderer:
-                                                                    duration = float(cue_renderer['durationMs']) / 1000.0
-                                                                transcript.append({
-                                                                    "text": text,
-                                                                    "start": start,
-                                                                    "duration": duration
-                                                                })
-                                                    
-                if transcript:
-                    logger.info(f"InnerTube API를 통해 {len(transcript)}개의 자막 세그먼트를 가져왔습니다.")
-                    return transcript
+                result = client.get_transcript(video_id)
+            except Exception as e:
+                logger.error(f"자막 트랙 가져오기 오류: {str(e)}")
+                return []
                 
-            except Exception as parse_error:
-                logger.error(f"InnerTube 자막 파싱 오류: {str(parse_error)}")
-            
-            # 기본 YouTube 객체를 통한 접근 (위 방법 실패 시)
-            url = f"https://www.youtube.com/watch?v={video_id}"
-            yt = YouTube(url)
-            caption_tracks = yt.captions
-            
-            # 선호하는 자막 트랙 찾기
-            preferred_track = None
-            if language_code in caption_tracks:
-                preferred_track = caption_tracks[language_code]
-            elif 'a.' + language_code in caption_tracks:  # 자동 생성 자막
-                preferred_track = caption_tracks['a.' + language_code]
-            elif 'en' in caption_tracks:  # 영어 자막
-                preferred_track = caption_tracks['en']
-            elif len(caption_tracks) > 0:  # 어떤 자막이든 사용
-                preferred_track = next(iter(caption_tracks.values()))
-            
-            # 자막 변환
-            if preferred_track:
-                logger.info(f"pytube를 통해 자막 트랙을 찾았습니다: {preferred_track.code}")
-                srt_captions = preferred_track.generate_srt_captions()
-                if srt_captions:
-                    # SRT 형식 파싱
-                    lines = srt_captions.split('\n\n')
-                    transcript = []
-                    for i, line in enumerate(lines):
-                        if line.strip():
-                            try:
-                                parts = line.strip().split('\n')
-                                if len(parts) >= 3:
-                                    time_parts = parts[1].split(' --> ')
-                                    start_time = self._srt_time_to_seconds(time_parts[0])
-                                    end_time = self._srt_time_to_seconds(time_parts[1])
-                                    duration = end_time - start_time
-                                    text = ' '.join(parts[2:])
-                                    transcript.append({
-                                        "text": text.strip(),
-                                        "start": start_time,
-                                        "duration": duration
-                                    })
-                            except Exception as parse_err:
-                                logger.warning(f"SRT 라인 파싱 오류: {str(parse_err)}")
-                    if transcript:
-                        logger.info(f"pytube로부터 {len(transcript)}개의 자막 세그먼트를 생성했습니다.")
-                        return transcript
-            
-            logger.warning("pytube를 통해 자막을 가져올 수 없습니다.")
-            return []
-            
-        except ImportError:
-            logger.error("pytube 모듈을 설치해주세요: pip install pytube")
-            return []
+            if not result:
+                logger.warning(f"비디오 {video_id}에 대한 자막 트랙을 찾을 수 없습니다.")
+                return []
+
+            # 자막 데이터 처리
+            try:
+                transcript_data = []
+                for item in result.get('events', []):
+                    if 'segs' not in item:
+                        continue
+                        
+                    start_time = float(item.get('tStartMs', 0)) / 1000
+                    duration = float(item.get('dDurationMs', 0)) / 1000
+                    
+                    text_segments = []
+                    for seg in item.get('segs', []):
+                        if 'utf8' in seg:
+                            text_segments.append(seg['utf8'])
+                    
+                    text = ' '.join(text_segments).strip()
+                    if text:
+                        transcript_data.append({
+                            'start': start_time,
+                            'duration': duration,
+                            'text': text
+                        })
+                
+                return transcript_data
+            except Exception as e:
+                logger.error(f"자막 데이터 처리 중 오류: {str(e)}")
+                return []
+                
         except Exception as e:
             logger.error(f"pytube 직접 자막 가져오기 오류: {str(e)}")
             return []
@@ -800,54 +742,90 @@ class YouTubeService:
     
     def get_video_transcript_text(self, video_id: str, language_code: str = 'ko') -> str:
         """
-        동영상 ID를 받아 자막 텍스트를 반환합니다.
+        비디오 ID에 해당하는 자막을 텍스트로 변환합니다.
         """
-        transcript = self.get_transcript(video_id, language_code)
-        return self.transcript_to_text(transcript)
+        try:
+            transcript = self.get_transcript(video_id, language_code)
+            if not transcript:
+                return ""
+                
+            return self.transcript_to_text(transcript)
+        except Exception as e:
+            logger.error(f"자막 텍스트 변환 중 오류: {str(e)}")
+            return ""
     
     def summarize_video(self, video_url: str, language_code: str = 'ko', model: str = None) -> Dict[str, Any]:
         """
-        유튜브 동영상 URL을 받아 정보와 자막 텍스트를 반환합니다.
+        유튜브 동영상 URL을 받아 정보와 자막 텍스트를 요약하여 반환합니다.
         """
         try:
             from app.services.summarizer_service import SummarizerService
             
+            logger.info(f"유튜브 영상 요약 시작: {video_url}")
+            
             video_id = self.extract_video_id(video_url)
             if not video_id:
+                logger.error(f"유효하지 않은 YouTube URL: {video_url}")
                 return {"error": "유효하지 않은 YouTube URL입니다."}
             
             # 비디오 정보 가져오기
             video_info = self.get_video_info(video_id)
             if "error" in video_info:
+                logger.error(f"비디오 정보 가져오기 실패: {video_info['error']}")
                 return video_info
+            
+            logger.info(f"비디오 정보 가져오기 성공: {video_info.get('title', '제목 없음')}")
             
             # 자막 가져오기
             transcript_text = self.get_video_transcript_text(video_id, language_code)
+            if not transcript_text:
+                logger.warning(f"자막을 가져올 수 없습니다. 비디오 설명으로 대체합니다: {video_id}")
+                # 자막 대신 비디오 설명 사용
+                transcript_text = "자막을 가져올 수 없습니다."
+                if 'description' in video_info and video_info['description']:
+                    transcript_text += "\n\n비디오 설명:\n" + video_info['description']
             
-            # 요약하기
-            summarizer = SummarizerService()
-            summary_text = transcript_text if transcript_text else video_info.get("description", "")
+            # 요약 서비스 호출
+            summarizer = SummarizerService(model=model)
             
-            if not summary_text:
-                return {**video_info, "error": "요약할 텍스트가 없습니다.", "transcript": "자막 또는 설명을 가져올 수 없습니다."}
+            # 자막이 너무 짧으면 요약 정보 제공
+            if len(transcript_text) < 50:
+                logger.warning(f"자막이 너무 짧아 요약을 생성하지 않습니다: {len(transcript_text)}자")
+                summary_result = {"summary": transcript_text}
+                keywords = ["자막 없음"]
+                evaluation = {"accuracy": 0, "completeness": 0, "coherence": 0}
+            else:
+                # 텍스트 요약
+                summary_result = summarizer.summarize_text(
+                    text=transcript_text,
+                    style="detailed",  # mode 대신 style 매개변수 사용
+                    max_length=300,
+                    language=language_code
+                )
+                
+                # 키워드 추출
+                keywords = summarizer.extract_key_phrases(transcript_text)
+                
+                # 요약 품질 평가
+                evaluation = summarizer.evaluate_summary_quality(transcript_text, summary_result["summary"])
             
-            summary_result = summarizer.summarize_text(
-                text=summary_text,
-                style="detailed",
-                max_length=300,
-                language=language_code,
-                format="text",
-                model=model
-            )
-            
+            # 결과 반환
             return {
-                **video_info,
-                "transcript": transcript_text[:500] + ("..." if len(transcript_text) > 500 else ""),
-                "summary": summary_result["summary"] if "summary" in summary_result else "요약 실패"
+                "video_id": video_id,
+                "title": video_info.get("title", ""),
+                "channel": video_info.get("channel", ""),
+                "publish_date": video_info.get("published_at", ""),
+                "views": video_info.get("view_count", 0),
+                "likes": video_info.get("like_count", 0),
+                "transcript": transcript_text,
+                "summary": summary_result["summary"],
+                "keywords": keywords,
+                "evaluation": evaluation
             }
+            
         except Exception as e:
-            logger.error(f"Error summarizing video: {str(e)}")
-            return {"error": f"동영상 요약 중 오류가 발생했습니다: {str(e)}"}
+            logger.error(f"유튜브 영상 요약 중 오류: {str(e)}")
+            return {"error": f"요약 중 오류가 발생했습니다: {str(e)}"}
 
     def search_by_handle_or_custom_url(self, channel_identifier: str) -> List[Dict[str, Any]]:
         """
