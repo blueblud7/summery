@@ -1,4 +1,4 @@
-# Text Summarizer
+# Summer AI
 
 텍스트, 유튜브 동영상, 문서 등을 요약해주는 서비스입니다.
 
