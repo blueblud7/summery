@@ -35,6 +35,7 @@ async function addChannel() {
     }
     
     try {
+        // 입력값을 그대로 서버로 전송
         const response = await fetch('/api/v1/youtube/channels/', {
             method: 'POST',
             headers: {

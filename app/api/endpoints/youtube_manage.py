@@ -25,21 +25,40 @@ logger = logging.getLogger(__name__)
 def create_channel(channel: YoutubeChannelCreate, db: Session = Depends(get_db)):
     try:
         logger.info(f"채널 생성 요청: {channel.channel_id}")
+        
+        # 유튜브 API를 통해 채널 정보 확인
+        youtube_service = YouTubeService()
+        
+        # URL 또는 핸들인 경우 실제 채널 ID 추출
+        channel_info = youtube_service.get_channel_info(channel.channel_id)
+        if "error" in channel_info:
+            logger.warning(f"채널 정보 가져오기 실패: {channel_info['error']}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"유효하지 않은 채널 ID 또는 URL: {channel_info['error']}"
+            )
+        
+        # 실제 채널 ID로 업데이트
+        real_channel_id = channel_info['channel_id']
+        
         # 이미 존재하는 채널인지 확인
-        db_channel = crud.get_youtube_channel_by_id(db, channel_id=channel.channel_id)
+        db_channel = crud.get_youtube_channel_by_id(db, channel_id=real_channel_id)
         if db_channel:
-            logger.warning(f"중복된 채널 ID: {channel.channel_id}")
+            logger.warning(f"중복된 채널 ID: {real_channel_id}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미 등록된 채널입니다."
             )
-        
-        # 유튜브 API를 통해 채널 정보 확인 (옵션)
-        youtube_service = YouTubeService()
-        
+            
         # 새 채널 추가
         try:
-            return crud.create_youtube_channel(db=db, channel=channel)
+            # 채널 객체 업데이트
+            channel_obj = YoutubeChannelCreate(
+                channel_id=real_channel_id,
+                title=channel_info.get('title', ''),
+                description=channel_info.get('description', '')
+            )
+            return crud.create_youtube_channel(db=db, channel=channel_obj)
         except Exception as e:
             logger.error(f"채널 추가 중 오류: {str(e)}")
             raise HTTPException(

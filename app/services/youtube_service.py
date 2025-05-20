@@ -91,24 +91,110 @@ class YouTubeService:
         }
 
     def get_channel_info(self, channel_id: str) -> Dict[str, Any]:
-        def request():
-            request = self.youtube.channels().list(
-                part="snippet",
-                id=channel_id
-            )
-            response = request.execute()
-            
-            if not response['items']:
-                return None
-                
-            channel = response['items'][0]
-            return {
-                'channel_id': channel['id'],
-                'title': channel['snippet']['title'],
-                'description': channel['snippet']['description']
-            }
+        # 채널 ID 또는 URL에서 실제 ID 추출
+        if channel_id.startswith('http'):
+            extracted_id = self.extract_channel_id(channel_id)
+            if extracted_id:
+                channel_id = extracted_id
+            else:
+                logger.error(f"유효하지 않은 채널 URL: {channel_id}")
+                return {"error": "Invalid channel URL"}
         
-        return self._make_request(request, lambda: self._mock_channel_info(channel_id))
+        # '@' 형식의 핸들 처리
+        if channel_id.startswith('@'):
+            def request_by_handle():
+                # 핸들로 채널 검색
+                request = self.youtube.search().list(
+                    part="snippet",
+                    q=channel_id,
+                    type="channel",
+                    maxResults=1
+                )
+                response = request.execute()
+                
+                if not response.get('items'):
+                    logger.error(f"채널 핸들에 해당하는 채널을 찾을 수 없음: {channel_id}")
+                    return {"error": "Channel not found"}
+                
+                channel_item = response['items'][0]
+                real_channel_id = channel_item['snippet']['channelId']
+                
+                # 실제 채널 ID로 추가 정보 요청
+                channel_request = self.youtube.channels().list(
+                    part="snippet",
+                    id=real_channel_id
+                )
+                channel_response = channel_request.execute()
+                
+                if not channel_response['items']:
+                    return None
+                    
+                channel = channel_response['items'][0]
+                return {
+                    'channel_id': channel['id'],
+                    'title': channel['snippet']['title'],
+                    'description': channel['snippet']['description']
+                }
+            
+            return self._make_request(request_by_handle, lambda: self._mock_channel_info(channel_id))
+        # 이전 사용자 정의 URL 형식 처리
+        elif channel_id.startswith('c/') or channel_id.startswith('user/'):
+            def request_by_custom_url():
+                # 사용자 정의 URL로 채널 검색
+                username = channel_id.split('/', 1)[1]
+                request = self.youtube.search().list(
+                    part="snippet",
+                    q=username,
+                    type="channel",
+                    maxResults=1
+                )
+                response = request.execute()
+                
+                if not response.get('items'):
+                    logger.error(f"사용자 정의 URL에 해당하는 채널을 찾을 수 없음: {channel_id}")
+                    return {"error": "Channel not found"}
+                
+                channel_item = response['items'][0]
+                real_channel_id = channel_item['snippet']['channelId']
+                
+                # 실제 채널 ID로 추가 정보 요청
+                channel_request = self.youtube.channels().list(
+                    part="snippet",
+                    id=real_channel_id
+                )
+                channel_response = channel_request.execute()
+                
+                if not channel_response['items']:
+                    return None
+                    
+                channel = channel_response['items'][0]
+                return {
+                    'channel_id': channel['id'],
+                    'title': channel['snippet']['title'],
+                    'description': channel['snippet']['description']
+                }
+            
+            return self._make_request(request_by_custom_url, lambda: self._mock_channel_info(channel_id))
+        else:
+            # 기존 채널 ID 처리 방식
+            def request():
+                request = self.youtube.channels().list(
+                    part="snippet",
+                    id=channel_id
+                )
+                response = request.execute()
+                
+                if not response['items']:
+                    return None
+                    
+                channel = response['items'][0]
+                return {
+                    'channel_id': channel['id'],
+                    'title': channel['snippet']['title'],
+                    'description': channel['snippet']['description']
+                }
+            
+            return self._make_request(request, lambda: self._mock_channel_info(channel_id))
 
     # 키워드 검색에 대한 모의 데이터
     def _mock_videos_by_keyword(self, keyword: str, max_results: int = 10) -> List[Dict[str, Any]]:
@@ -257,6 +343,46 @@ class YouTubeService:
         match = re.search(youtube_regex, url)
         if match:
             return match.group(1)
+        return None
+    
+    def extract_channel_id(self, url: str) -> Optional[str]:
+        """
+        유튜브 URL에서 채널 ID 또는 핸들을 추출합니다.
+        지원 형식:
+        - youtube.com/channel/UC... (채널 ID)
+        - youtube.com/@handle (핸들)
+        - youtube.com/c/custom (사용자 정의 URL)
+        - youtube.com/user/username (이전 형식)
+        """
+        # 채널 ID 형식 (UC로 시작하는 ID)
+        channel_id_regex = r'youtube\.com\/channel\/([a-zA-Z0-9_-]+)'
+        match = re.search(channel_id_regex, url)
+        if match:
+            return match.group(1)
+        
+        # @ 핸들 형식
+        handle_regex = r'youtube\.com\/@([a-zA-Z0-9_-]+)'
+        match = re.search(handle_regex, url)
+        if match:
+            # 핸들을 반환하고, 나중에 채널 ID로 변환
+            return '@' + match.group(1)
+        
+        # 사용자 정의 URL (c/)
+        custom_regex = r'youtube\.com\/c\/([a-zA-Z0-9_-]+)'
+        match = re.search(custom_regex, url)
+        if match:
+            return 'c/' + match.group(1)
+        
+        # 이전 사용자 URL (user/)
+        user_regex = r'youtube\.com\/user\/([a-zA-Z0-9_-]+)'
+        match = re.search(user_regex, url)
+        if match:
+            return 'user/' + match.group(1)
+        
+        # 입력이 이미 채널 ID이거나 핸들인 경우
+        if url.startswith('@') or url.startswith('UC') or url.startswith('c/') or url.startswith('user/'):
+            return url
+            
         return None
     
     def get_transcript(self, video_id: str, language_code: str = 'ko') -> List[Dict[str, Any]]:
