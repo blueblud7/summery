@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.cors import CORSMiddleware
-from app.api.endpoints import summarizer, history
+from app.api.endpoints import summarizer, history, youtube_manage
 from app.core.config import settings
 from app.db.database import init_db
 from app.db.models import YoutubeChannel, YoutubeKeyword, Video, SummaryHistory
@@ -40,6 +40,7 @@ templates = Jinja2Templates(directory="app/templates")
 logger.info("Registering routers...")
 app.include_router(summarizer.router, prefix="/api/v1", tags=["summarizer"])
 app.include_router(history.router, prefix="/api/v1/history", tags=["history"])
+app.include_router(youtube_manage.router, prefix="/api/v1/youtube", tags=["youtube"])
 
 @app.on_event("startup")
 async def startup_db_client():
@@ -54,14 +55,20 @@ async def startup_db_client():
 # 루트 페이지
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
+    """
+    Returns the home page.
+    """
     logger.info("Root endpoint called")
     return templates.TemplateResponse("index.html", {"request": request})
 
 # 관리 페이지
 @app.get("/manage", response_class=HTMLResponse)
 async def youtube_manage_page(request: Request):
+    """
+    Returns the YouTube management page.
+    """
     logger.info("YouTube manage page called")
-    return templates.TemplateResponse("manage.html", {"request": request})
+    return templates.TemplateResponse("youtube_manage.html", {"request": request})
 
 # 메인 시작점
 logger.info("Starting application...")

@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}유튜브 채널 및 키워드 관리{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/youtube_manage.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <h1>유튜브 채널 및 키워드 관리</h1>
+    </div>
+    
+    <div id="message" class="message"></div>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('channels')">채널 관리</div>
+        <div class="tab" onclick="switchTab('keywords')">키워드 관리</div>
+    </div>
+    
+    <div id="channels" class="tab-content active">
+        <h2>채널 관리</h2>
+        
+        <form id="addChannelForm">
+            <div class="form-group">
+                <label for="channelId">채널 ID 또는 URL</label>
+                <input type="text" id="channelId" placeholder="예: UCdUcjkyZtf-1WJyPPiETF1g 또는 전체 URL">
+            </div>
+            <button type="submit">채널 추가</button>
+        </form>
+        
+        <div class="list-container">
+            <h3 class="list-title">등록된 채널</h3>
+            <div id="channelList">
+                <!-- 채널 목록이 여기에 동적으로 추가됩니다 -->
+                <div class="loading">채널 목록을 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="keywords" class="tab-content">
+        <h2>키워드 관리</h2>
+        
+        <form id="addKeywordForm">
+            <div class="form-group">
+                <label for="keyword">키워드</label>
+                <input type="text" id="keyword" placeholder="검색할 키워드 입력">
+            </div>
+            <button type="submit">키워드 추가</button>
+        </form>
+        
+        <div class="list-container">
+            <h3 class="list-title">등록된 키워드</h3>
+            <div id="keywordList">
+                <!-- 키워드 목록이 여기에 동적으로 추가됩니다 -->
+                <div class="loading">키워드 목록을 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="video-results">
+        <h2>검색 결과</h2>
+        <div id="videoResults">
+            <!-- 비디오 검색 결과가 여기에 표시됩니다 -->
+        </div>
+    </div>
+    
+    <div id="summaryResult" class="summary-result" style="display: none;">
+        <!-- 요약 결과가 여기에 표시됩니다 -->
+    </div>
+</div>
+
+<script>
+    function switchTab(tabId) {
+        // 모든 탭 컨텐츠 숨기기
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        // 모든 탭 버튼 비활성화
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        // 선택한 탭 컨텐츠 표시
+        document.getElementById(tabId).classList.add('active');
+        
+        // 선택한 탭 버튼 활성화
+        document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+    }
+</script>
+<script src="{{ url_for('static', path='/js/youtube_manage.js') }}"></script>
+{% endblock %} 
