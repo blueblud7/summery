@@ -277,6 +277,17 @@ class YouTubeService:
             return mock_transcript
             
         try:
+            # 먼저 pytube를 통해 직접 자막 시도
+            try:
+                logger.info(f"먼저 pytube를 통해 직접 자막을 가져오려고 시도합니다: {video_id}")
+                transcript = self._get_transcript_directly_from_pytube(video_id, language_code)
+                if transcript:
+                    logger.info(f"pytube로 직접 자막을 성공적으로 가져왔습니다.")
+                    return transcript
+            except Exception as pytube_e:
+                logger.warning(f"pytube로 직접 자막 가져오기 실패: {str(pytube_e)}")
+            
+            # pytube 실패 시 youtube_transcript_api 사용
             from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled, NoTranscriptAvailable
             
             try:
@@ -350,6 +361,125 @@ class YouTubeService:
             
         except Exception as e:
             logger.error(f"자막 가져오기 오류: {str(e)}")
+            return []
+    
+    def _get_transcript_directly_from_pytube(self, video_id: str, language_code: str = 'ko') -> List[Dict[str, Any]]:
+        """
+        pytube를 사용하여 직접 자막을 가져오는 방법
+        """
+        try:
+            from pytube import YouTube, innertube
+            
+            # InnerTube 클라이언트 생성 (YouTube API 내부 접근)
+            client = innertube.InnerTube(client="WEB", use_oauth=False, use_json=True)
+            
+            # 비디오 정보 및 자막 트랙 가져오기
+            result = client.get_transcript(video_id)
+            if not result:
+                logger.warning("InnerTube 클라이언트로 자막 가져오기 실패")
+                return []
+            
+            # 타임 텍스트 트랙 확인
+            if 'actions' not in result:
+                logger.warning("InnerTube 응답에 'actions' 키가 없습니다")
+                return []
+            
+            # 자막 트랙 처리
+            transcript = []
+            try:
+                # 새로운 InnerTube API 구조 접근
+                actions = result['actions']
+                for action in actions:
+                    if 'updateEngagementPanelAction' in action:
+                        panel_content = action['updateEngagementPanelAction']['content']
+                        if 'transcriptRenderer' in panel_content:
+                            transcript_renderer = panel_content['transcriptRenderer']
+                            if 'body' in transcript_renderer:
+                                body = transcript_renderer['body']
+                                if 'transcriptBodyRenderer' in body:
+                                    body_renderer = body['transcriptBodyRenderer']
+                                    if 'cueGroups' in body_renderer:
+                                        cue_groups = body_renderer['cueGroups']
+                                        for cue_group in cue_groups:
+                                            if 'transcriptCueGroupRenderer' in cue_group:
+                                                cue_group_renderer = cue_group['transcriptCueGroupRenderer']
+                                                if 'cues' in cue_group_renderer:
+                                                    cues = cue_group_renderer['cues']
+                                                    for cue in cues:
+                                                        if 'transcriptCueRenderer' in cue:
+                                                            cue_renderer = cue['transcriptCueRenderer']
+                                                            if 'cue' in cue_renderer and 'startOffsetMs' in cue_renderer:
+                                                                start = float(cue_renderer['startOffsetMs']) / 1000.0
+                                                                text = cue_renderer['cue']['simpleText']
+                                                                duration = 5.0  # 기본값
+                                                                if 'durationMs' in cue_renderer:
+                                                                    duration = float(cue_renderer['durationMs']) / 1000.0
+                                                                transcript.append({
+                                                                    "text": text,
+                                                                    "start": start,
+                                                                    "duration": duration
+                                                                })
+                                                    
+                if transcript:
+                    logger.info(f"InnerTube API를 통해 {len(transcript)}개의 자막 세그먼트를 가져왔습니다.")
+                    return transcript
+                
+            except Exception as parse_error:
+                logger.error(f"InnerTube 자막 파싱 오류: {str(parse_error)}")
+            
+            # 기본 YouTube 객체를 통한 접근 (위 방법 실패 시)
+            url = f"https://www.youtube.com/watch?v={video_id}"
+            yt = YouTube(url)
+            caption_tracks = yt.captions
+            
+            # 선호하는 자막 트랙 찾기
+            preferred_track = None
+            if language_code in caption_tracks:
+                preferred_track = caption_tracks[language_code]
+            elif 'a.' + language_code in caption_tracks:  # 자동 생성 자막
+                preferred_track = caption_tracks['a.' + language_code]
+            elif 'en' in caption_tracks:  # 영어 자막
+                preferred_track = caption_tracks['en']
+            elif len(caption_tracks) > 0:  # 어떤 자막이든 사용
+                preferred_track = next(iter(caption_tracks.values()))
+            
+            # 자막 변환
+            if preferred_track:
+                logger.info(f"pytube를 통해 자막 트랙을 찾았습니다: {preferred_track.code}")
+                srt_captions = preferred_track.generate_srt_captions()
+                if srt_captions:
+                    # SRT 형식 파싱
+                    lines = srt_captions.split('\n\n')
+                    transcript = []
+                    for i, line in enumerate(lines):
+                        if line.strip():
+                            try:
+                                parts = line.strip().split('\n')
+                                if len(parts) >= 3:
+                                    time_parts = parts[1].split(' --> ')
+                                    start_time = self._srt_time_to_seconds(time_parts[0])
+                                    end_time = self._srt_time_to_seconds(time_parts[1])
+                                    duration = end_time - start_time
+                                    text = ' '.join(parts[2:])
+                                    transcript.append({
+                                        "text": text.strip(),
+                                        "start": start_time,
+                                        "duration": duration
+                                    })
+                            except Exception as parse_err:
+                                logger.warning(f"SRT 라인 파싱 오류: {str(parse_err)}")
+                    if transcript:
+                        logger.info(f"pytube로부터 {len(transcript)}개의 자막 세그먼트를 생성했습니다.")
+                        return transcript
+            
+            logger.warning("pytube를 통해 자막을 가져올 수 없습니다.")
+            return []
+            
+        except ImportError:
+            logger.error("pytube 모듈을 설치해주세요: pip install pytube")
+            return []
+        except Exception as e:
+            logger.error(f"pytube 직접 자막 가져오기 오류: {str(e)}")
             return []
     
     def _get_transcript_via_pytube(self, video_id: str) -> List[Dict[str, Any]]:
