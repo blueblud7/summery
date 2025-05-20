@@ -41,7 +41,7 @@ class SummaryHistory(Base):
     original_text = Column(Text, nullable=True)
     summary_text = Column(Text, nullable=True)
     key_phrases = Column(Text, nullable=True)  # JSON 형식으로 저장
-    metadata = Column(JSON, nullable=True)  # 원본 정보(URL, 파일명 등)
+    source_info = Column(JSON, nullable=True)  # 원본 정보(URL, 파일명 등)
     quality_score = Column(Integer, nullable=True)
     model_used = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -53,7 +53,7 @@ class SummaryHistory(Base):
             "original_text": self.original_text[:200] + "..." if self.original_text and len(self.original_text) > 200 else self.original_text,
             "summary_text": self.summary_text,
             "key_phrases": self.key_phrases,
-            "metadata": self.metadata,
+            "metadata": self.source_info,
             "quality_score": self.quality_score,
             "model_used": self.model_used,
             "created_at": self.created_at.isoformat() if self.created_at else None

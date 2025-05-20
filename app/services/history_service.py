@@ -64,7 +64,7 @@ class HistoryService:
                 original_text=original_transcript,
                 summary_text=summary_text,
                 key_phrases=json.dumps(key_phrases) if key_phrases else None,
-                metadata=metadata,
+                source_info=metadata,
                 model_used=model_used,
                 quality_score=quality_score,
             )
@@ -102,7 +102,7 @@ class HistoryService:
                 original_text=original_text,
                 summary_text=summary_text,
                 key_phrases=json.dumps(key_phrases) if key_phrases else None,
-                metadata=metadata,
+                source_info=metadata,
                 model_used=model_used,
                 quality_score=quality_score,
             )

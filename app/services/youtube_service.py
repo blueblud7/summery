@@ -277,46 +277,72 @@ class YouTubeService:
             return mock_transcript
             
         try:
-            from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+            from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled, NoTranscriptAvailable
             
             try:
                 # 1. 먼저 지정된 언어로 시도
                 transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=[language_code])
                 logger.info(f"지정된 언어({language_code})로 자막을 찾았습니다.")
                 return transcript
-            except Exception as e:
+            except (NoTranscriptFound, NoTranscriptAvailable) as e:
                 logger.warning(f"지정된 언어({language_code})로 자막을 찾을 수 없습니다: {str(e)}")
                 
                 try:
-                    # 2. 자동 생성된 지정 언어 자막 시도
+                    # 2. 자동 생성된 지정 언어 자막 시도 (asr: Auto Speech Recognition)
                     auto_language_code = f"{language_code}-generated"
                     transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=[auto_language_code])
                     logger.info(f"자동 생성된 자막({auto_language_code})을 찾았습니다.")
                     return transcript
                 except Exception as e:
-                    logger.warning(f"자동 생성된 자막도 찾을 수 없습니다: {str(e)}")
+                    logger.warning(f"자동 생성된 자막(generated)도 찾을 수 없습니다: {str(e)}")
                     
                     try:
-                        # 3. 영어 자막 시도
-                        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=["en"])
-                        logger.info("영어 자막을 찾았습니다.")
+                        # 2-1. 새로운 방법: asr 태그로 자동 생성된 자막 시도
+                        asr_auto_lang = f"asr-{language_code}"
+                        transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=[asr_auto_lang])
+                        logger.info(f"ASR 자동 생성된 자막({asr_auto_lang})을 찾았습니다.")
                         return transcript
                     except Exception as e:
-                        logger.warning(f"영어 자막도 찾을 수 없습니다: {str(e)}")
+                        logger.warning(f"ASR 자동 생성된 자막도 찾을 수 없습니다: {str(e)}")
+                        
+                        # 3. 영어 자막 시도 (일반 영어와 자동 생성 영어)
+                        for lang in ["en", "en-generated", "asr-en"]:
+                            try:
+                                transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=[lang])
+                                logger.info(f"{lang} 자막을 찾았습니다.")
+                                return transcript
+                            except Exception as inner_e:
+                                logger.warning(f"{lang} 자막을 찾을 수 없습니다: {str(inner_e)}")
+                        
+                        # 영어 자막도 없는 경우
+                        logger.warning("영어 자막도 찾을 수 없습니다.")
                         
                         try:
-                            # 4. 사용 가능한 아무 자막이나 시도
+                            # 4. 사용 가능한 모든 자막 나열 및 첫 번째 시도
                             transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-                            first_transcript = list(transcript_list)[0]
-                            transcript = first_transcript.fetch()
-                            logger.info(f"사용 가능한 자막을 찾았습니다: {first_transcript.language_code}")
-                            return transcript
+                            available_transcripts = list(transcript_list)
+                            
+                            if available_transcripts:
+                                logger.info(f"사용 가능한 자막 목록: {[t.language_code for t in available_transcripts]}")
+                                first_transcript = available_transcripts[0]
+                                transcript = first_transcript.fetch()
+                                logger.info(f"사용 가능한 자막을 찾았습니다: {first_transcript.language_code}")
+                                return transcript
+                            else:
+                                logger.warning("사용 가능한 자막이 없습니다.")
+                                
                         except Exception as e:
                             logger.warning(f"사용 가능한 자막을 찾을 수 없습니다: {str(e)}")
+                        
+                        # 5. 대체 방법: pytube 시도
+                        logger.info("대체 방법으로 pytube를 사용하여 자막을 가져오려고 시도합니다.")
+                        return self._get_transcript_via_pytube(video_id)
                             
-                            # 5. 대체 방법: pytube 시도
-                            return self._get_transcript_via_pytube(video_id)
-                                
+            except TranscriptsDisabled as e:
+                logger.warning(f"이 비디오에는 자막이 비활성화되어 있습니다: {str(e)}")
+                # pytube로 대체 시도
+                return self._get_transcript_via_pytube(video_id)
+                            
         except ImportError:
             logger.error("youtube_transcript_api 모듈을 설치해주세요: pip install youtube-transcript-api")
             # pytube로 대체 시도

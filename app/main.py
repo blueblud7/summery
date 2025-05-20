@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.cors import CORSMiddleware
-from app.api.endpoints import summarizer, youtube_manage
+from app.api.endpoints import summarizer, history
 from app.core.config import settings
 from app.db.database import init_db
 import os
@@ -38,7 +38,7 @@ templates = Jinja2Templates(directory="app/templates")
 # API 라우터 등록
 logger.info("Registering routers...")
 app.include_router(summarizer.router, prefix="/api/v1", tags=["summarizer"])
-app.include_router(youtube_manage.router, prefix="/api/v1/youtube", tags=["youtube"])
+app.include_router(history.router, prefix="/api/v1/history", tags=["history"])
 
 @app.on_event("startup")
 async def startup_db_client():
