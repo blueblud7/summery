@@ -62,7 +62,19 @@
     
     <div class="video-results">
         <h2>검색 결과</h2>
-        <div id="videoResults">
+        <div class="filter-controls" id="videoFilters" style="display: none;">
+            <input type="text" id="videoSearchInput" class="search-input" placeholder="검색 결과 내 검색...">
+            <select id="videoSortSelect">
+                <option value="date_desc">최신순</option>
+                <option value="date_asc">오래된순</option>
+                <option value="views_desc">조회수 높은순</option>
+                <option value="views_asc">조회수 낮은순</option>
+                <option value="title_asc">제목 오름차순</option>
+                <option value="title_desc">제목 내림차순</option>
+            </select>
+            <span id="resultCount"></span>
+        </div>
+        <div id="videoResults" class="video-grid">
             <!-- 비디오 검색 결과가 여기에 표시됩니다 -->
         </div>
     </div>

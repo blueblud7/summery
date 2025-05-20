@@ -238,31 +238,141 @@ async function getKeywordVideos(keyword) {
     }
 }
 
+// 전역 변수: 현재 비디오 목록 (필터링용)
+let currentVideos = [];
+
 // 영상 표시 함수
 function displayVideos(videos) {
+    // 전역 변수에 비디오 목록 저장 (필터링을 위해)
+    currentVideos = videos;
+    
     const videoContainer = document.getElementById('videoResults');
+    const videoFilters = document.getElementById('videoFilters');
+    const resultCount = document.getElementById('resultCount');
+    
     videoContainer.innerHTML = '';
     
     if (videos.length === 0) {
+        videoFilters.style.display = 'none';
         videoContainer.innerHTML = '<p class="no-results">검색 결과가 없습니다.</p>';
         return;
     }
     
+    // 필터 컨트롤 표시
+    videoFilters.style.display = 'flex';
+    resultCount.textContent = `총 ${videos.length}개 영상`;
+    
+    // 초기 정렬: 최신순
+    sortVideos('date_desc');
+}
+
+// 비디오 목록 렌더링
+function renderVideos(videos) {
+    const videoContainer = document.getElementById('videoResults');
+    videoContainer.innerHTML = '';
+    
     videos.forEach(video => {
+        // ISO 날짜 형식을 한국어 날짜 형식으로 변환
+        const publishDate = video.published_at ? new Date(video.published_at) : null;
+        const formattedDate = publishDate ? 
+            `${publishDate.getFullYear()}년 ${publishDate.getMonth() + 1}월 ${publishDate.getDate()}일` : 
+            '날짜 정보 없음';
+            
+        // 조회수 형식화 (예: 1,234,567 -> 123.4만)
+        const viewCount = formatViewCount(video.view_count);
+        
         const videoItem = document.createElement('div');
         videoItem.className = 'video-item';
         videoItem.innerHTML = `
-            <h3>${video.title}</h3>
-            <p>${video.description ? video.description.substring(0, 100) + '...' : '설명 없음'}</p>
-            <div class="video-actions">
-                <a href="https://www.youtube.com/watch?v=${video.video_id}" target="_blank">
-                    <button>유튜브에서 보기</button>
-                </a>
-                <button onclick="summarizeVideo('${video.video_id}')">요약하기</button>
+            <img src="${video.thumbnail || 'https://via.placeholder.com/480x360?text=No+Thumbnail'}" 
+                 alt="${video.title}" class="video-thumbnail">
+            <div class="video-info">
+                <h3 title="${video.title}">${video.title}</h3>
+                <p class="video-description">${video.description ? video.description.substring(0, 100) + (video.description.length > 100 ? '...' : '') : '설명 없음'}</p>
+                <div class="video-meta">
+                    <span class="views"><i class="fas fa-eye"></i> ${viewCount}</span>
+                    <span class="date"><i class="fas fa-calendar-alt"></i> ${formattedDate}</span>
+                </div>
+                <div class="video-actions">
+                    <a href="https://www.youtube.com/watch?v=${video.video_id}" target="_blank">
+                        <button>유튜브에서 보기</button>
+                    </a>
+                    <button onclick="summarizeVideo('${video.video_id}')">요약하기</button>
+                </div>
             </div>
         `;
         videoContainer.appendChild(videoItem);
     });
+}
+
+// 조회수 형식화 함수
+function formatViewCount(count) {
+    if (!count && count !== 0) return '조회수 정보 없음';
+    
+    if (count >= 10000000) { // 1000만 이상
+        return (count / 10000000).toFixed(1) + '천만';
+    } else if (count >= 10000) { // 1만 이상
+        return (count / 10000).toFixed(1) + '만';
+    } else if (count >= 1000) { // 1천 이상
+        return (count / 1000).toFixed(1) + '천';
+    } else {
+        return count.toString();
+    }
+}
+
+// 비디오 정렬 함수
+function sortVideos(sortBy) {
+    if (currentVideos.length === 0) return;
+    
+    const sortedVideos = [...currentVideos];
+    
+    switch (sortBy) {
+        case 'date_desc': // 최신순
+            sortedVideos.sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0));
+            break;
+        case 'date_asc': // 오래된순
+            sortedVideos.sort((a, b) => new Date(a.published_at || 0) - new Date(b.published_at || 0));
+            break;
+        case 'views_desc': // 조회수 높은순
+            sortedVideos.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+            break;
+        case 'views_asc': // 조회수 낮은순
+            sortedVideos.sort((a, b) => (a.view_count || 0) - (b.view_count || 0));
+            break;
+        case 'title_asc': // 제목 오름차순
+            sortedVideos.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+            break;
+        case 'title_desc': // 제목 내림차순
+            sortedVideos.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+            break;
+        default:
+            break;
+    }
+    
+    // 정렬된 목록 렌더링
+    renderVideos(sortedVideos);
+}
+
+// 비디오 검색 필터링 함수
+function filterVideos(searchTerm) {
+    if (!searchTerm || searchTerm.trim() === '') {
+        // 검색어가 없으면 현재 정렬 기준으로 모든 비디오 표시
+        sortVideos(document.getElementById('videoSortSelect').value);
+        return;
+    }
+    
+    searchTerm = searchTerm.toLowerCase().trim();
+    
+    const filteredVideos = currentVideos.filter(video => 
+        (video.title && video.title.toLowerCase().includes(searchTerm)) || 
+        (video.description && video.description.toLowerCase().includes(searchTerm))
+    );
+    
+    renderVideos(filteredVideos);
+    
+    // 검색 결과 카운트 업데이트
+    document.getElementById('resultCount').textContent = 
+        `검색결과: ${filteredVideos.length}/${currentVideos.length}개 영상`;
 }
 
 // 영상 요약 함수
@@ -347,4 +457,29 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         addKeyword();
     });
+    
+    // 비디오 필터 이벤트 연결
+    const videoSearchInput = document.getElementById('videoSearchInput');
+    if (videoSearchInput) {
+        videoSearchInput.addEventListener('input', function() {
+            filterVideos(this.value);
+        });
+    }
+    
+    // 비디오 정렬 이벤트 연결
+    const videoSortSelect = document.getElementById('videoSortSelect');
+    if (videoSortSelect) {
+        videoSortSelect.addEventListener('change', function() {
+            sortVideos(this.value);
+        });
+    }
+    
+    // Font Awesome 아이콘 추가 (CDN에서 로딩)
+    if (!document.getElementById('font-awesome')) {
+        const fontAwesome = document.createElement('link');
+        fontAwesome.id = 'font-awesome';
+        fontAwesome.rel = 'stylesheet';
+        fontAwesome.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css';
+        document.head.appendChild(fontAwesome);
+    }
 }); 

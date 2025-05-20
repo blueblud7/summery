@@ -7,6 +7,7 @@ import logging
 import os
 import re
 from googleapiclient.errors import HttpError
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -273,30 +274,20 @@ class YouTubeService:
                     
                     # 채널 ID가 핸들 또는 사용자 정의 URL인 경우 검색 시도
                     if channel_id.startswith('@') or channel_id.startswith('c/') or channel_id.startswith('user/'):
-                        logger.info(f"핸들 또는 커스텀 URL로 채널 검색 시도: {channel_id}")
-                        
-                        # 채널 정보 가져오기
-                        channel_info = self.get_channel_info(channel_id)
-                        if "error" in channel_info:
-                            logger.error(f"채널 {channel_id} 정보 조회 실패: {channel_info['error']}")
-                            return []
-                            
-                        # 실제 채널 ID로 다시 시도
-                        real_channel_id = channel_info['channel_id']
-                        logger.info(f"실제 채널 ID 발견: {real_channel_id}, 비디오 검색 재시도")
-                        
-                        return self.get_channel_videos(real_channel_id, max_results)
+                        logger.info(f"핸들 또는 커스텀 URL을 사용해 채널 검색 시도: {channel_id}")
+                        return self.search_by_handle_or_custom_url(channel_id)
                     
                     return []
                 
-                channel_item = response['items'][0]
-                channel_title = channel_item['snippet']['title']
+                channel = response['items'][0]
+                channel_title = channel['snippet']['title']
                 logger.info(f"채널 제목: {channel_title}")
                 
-                uploads_playlist_id = channel_item['contentDetails']['relatedPlaylists']['uploads']
+                # Get the uploads playlist ID
+                uploads_playlist_id = channel['contentDetails']['relatedPlaylists']['uploads']
                 logger.info(f"업로드 플레이리스트 ID: {uploads_playlist_id}")
                 
-                # Then, get the videos from the uploads playlist
+                # Now get the videos from the uploads playlist
                 logger.info(f"채널 업로드 비디오 요청: 플레이리스트 ID={uploads_playlist_id}")
                 request = self.youtube.playlistItems().list(
                     part="snippet",
@@ -306,30 +297,77 @@ class YouTubeService:
                 response = request.execute()
                 
                 videos = []
+                video_ids = []
                 for item in response.get('items', []):
-                    try:
-                        video = {
-                            'video_id': item['snippet']['resourceId']['videoId'],
-                            'title': item['snippet']['title'],
-                            'description': item['snippet']['description'],
-                            'published_at': datetime.strptime(
-                                item['snippet']['publishedAt'],
-                                '%Y-%m-%dT%H:%M:%SZ'
-                            ),
-                            'channel_id': channel_id,
-                            'channel_title': item['snippet']['channelTitle']
-                        }
-                        videos.append(video)
-                    except Exception as parse_error:
-                        logger.error(f"비디오 항목 파싱 오류: {str(parse_error)}")
+                    video_ids.append(item['snippet']['resourceId']['videoId'])
+                    
+                logger.info(f"총 {len(response.get('items', []))}개의 비디오 항목을 가져왔습니다.")
                 
-                logger.info(f"총 {len(videos)}개의 비디오 항목을 가져왔습니다.")
+                # 비디오 상세 정보(조회수, 좋아요 수 등) 가져오기
+                if video_ids:
+                    batch_size = 50  # YouTube API 최대 제한
+                    video_details = {}
+                    
+                    for i in range(0, len(video_ids), batch_size):
+                        batch = video_ids[i:i + batch_size]
+                        details_request = self.youtube.videos().list(
+                            part="snippet,statistics,contentDetails",
+                            id=",".join(batch)
+                        )
+                        details_response = details_request.execute()
+                        
+                        for video in details_response.get('items', []):
+                            video_details[video['id']] = video
+                    
+                    # 비디오 정보 구성
+                    for item in response.get('items', []):
+                        video_id = item['snippet']['resourceId']['videoId']
+                        video_data = {
+                            'video_id': video_id,
+                            'title': item['snippet']['title'],
+                            'description': item['snippet'].get('description', ''),
+                            'thumbnail': item['snippet']['thumbnails'].get('high', {}).get('url', 
+                                          item['snippet']['thumbnails'].get('medium', {}).get('url', 
+                                          item['snippet']['thumbnails'].get('default', {}).get('url', ''))),
+                            'published_at': item['snippet'].get('publishedAt', ''),
+                            'channel_title': channel_title
+                        }
+                        
+                        # 상세 정보가 있으면 추가
+                        if video_id in video_details:
+                            details = video_details[video_id]
+                            stats = details.get('statistics', {})
+                            video_data.update({
+                                'view_count': int(stats.get('viewCount', 0)),
+                                'like_count': int(stats.get('likeCount', 0)),
+                                'comment_count': int(stats.get('commentCount', 0)),
+                                'duration': details.get('contentDetails', {}).get('duration', '')
+                            })
+                        
+                        videos.append(video_data)
+                
                 return videos
+                
             except Exception as e:
                 logger.error(f"채널 비디오 가져오기 오류: {str(e)}")
                 return []
         
-        return self._make_request(request, lambda: self._mock_channel_videos(channel_id, max_results))
+        try:
+            retries = 3
+            while retries > 0:
+                try:
+                    return request()
+                except HttpError as e:
+                    logger.warning(f"YouTube API HTTP 오류: {str(e)}")
+                    if e.resp.status in [429, 500, 503]:
+                        retries -= 1
+                        time.sleep(1)  # 재시도 전 잠시 대기
+                    else:
+                        raise
+            return []
+        except Exception as e:
+            logger.error(f"채널 비디오 요청 중 오류 발생: {str(e)}")
+            return []
 
     def get_video_info(self, video_id: str) -> Dict[str, Any]:
         """
