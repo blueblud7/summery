@@ -125,6 +125,15 @@ async def youtube_manage_page(request: Request):
     logger.info("YouTube manage page called")
     return templates.TemplateResponse("youtube_manage.html", {"request": request})
 
+# 히스토리 페이지
+@app.get("/history", response_class=HTMLResponse)
+async def history_page(request: Request):
+    """
+    요약 히스토리 페이지를 반환합니다.
+    """
+    logger.info("History page called")
+    return templates.TemplateResponse("history.html", {"request": request})
+
 # 채널 페이지
 @app.get("/channels", response_class=HTMLResponse)
 async def channels_page(request: Request):
