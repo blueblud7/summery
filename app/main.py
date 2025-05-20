@@ -12,7 +12,7 @@ import os
 
 # 로깅 설정
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
@@ -68,6 +68,33 @@ async def youtube_manage_page(request: Request):
     Returns the YouTube management page.
     """
     logger.info("YouTube manage page called")
+    return templates.TemplateResponse("youtube_manage.html", {"request": request})
+
+# 채널 페이지
+@app.get("/channels", response_class=HTMLResponse)
+async def channels_page(request: Request):
+    """
+    Returns the channels page.
+    """
+    logger.debug("Channels page called")
+    return templates.TemplateResponse("youtube_manage.html", {"request": request})
+
+# 키워드 페이지
+@app.get("/keywords", response_class=HTMLResponse)
+async def keywords_page(request: Request):
+    """
+    Returns the keywords page.
+    """
+    logger.debug("Keywords page called")
+    return templates.TemplateResponse("youtube_manage.html", {"request": request})
+
+# 검색 페이지
+@app.get("/search", response_class=HTMLResponse)
+async def search_page(request: Request):
+    """
+    Returns the search page.
+    """
+    logger.debug("Search page called")
     return templates.TemplateResponse("youtube_manage.html", {"request": request})
 
 # 메인 시작점

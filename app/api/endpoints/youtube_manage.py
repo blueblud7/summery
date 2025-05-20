@@ -41,7 +41,10 @@ def create_channel(channel: YoutubeChannelCreate, db: Session = Depends(get_db))
         # 실제 채널 ID로 업데이트
         real_channel_id = channel_info['channel_id']
         
-        # 이미 존재하는 채널인지 확인
+        # 로그 추가 - 디버깅을 위한 정보 출력
+        logger.info(f"검색된 채널 정보: ID={real_channel_id}, 제목={channel_info.get('title', '제목 없음')}")
+        
+        # 이미 존재하는 채널인지 확인 (실제 채널 ID로)
         db_channel = crud.get_youtube_channel_by_id(db, channel_id=real_channel_id)
         if db_channel:
             logger.warning(f"중복된 채널 ID: {real_channel_id}")
@@ -50,11 +53,21 @@ def create_channel(channel: YoutubeChannelCreate, db: Session = Depends(get_db))
                 detail="이미 등록된 채널입니다."
             )
             
+        # URL 형태로 저장된 채널도 확인
+        if channel.channel_id.startswith('http') or channel.channel_id.startswith('@'):
+            url_channel = db.query(DBYoutubeChannel).filter(DBYoutubeChannel.channel_id == channel.channel_id).first()
+            if url_channel:
+                logger.warning(f"URL 형태로 이미 등록된 채널: {channel.channel_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="이미 등록된 채널입니다."
+                )
+            
         # 새 채널 추가
         try:
-            # 채널 객체 업데이트
+            # 채널 객체 업데이트 - 항상 실제 채널 ID 사용
             channel_obj = YoutubeChannelCreate(
-                channel_id=real_channel_id,
+                channel_id=real_channel_id,  # 실제 채널 ID 저장
                 title=channel_info.get('title', ''),
                 description=channel_info.get('description', '')
             )
@@ -133,13 +146,39 @@ def update_channel(channel_id: str, channel: YoutubeChannelUpdate, db: Session =
 def delete_channel(channel_id: str, db: Session = Depends(get_db)):
     try:
         logger.info(f"채널 삭제 요청: {channel_id}")
+        
+        # URL 형태의 채널 ID인 경우 실제 채널 ID 추출 시도
+        if channel_id.startswith('http') or channel_id.startswith('@'):
+            youtube_service = YouTubeService()
+            channel_info = youtube_service.get_channel_info(channel_id)
+            if "error" not in channel_info:
+                real_channel_id = channel_info['channel_id']
+                logger.info(f"URL에서 추출한 실제 채널 ID: {real_channel_id}")
+                
+                # 실제 채널 ID로 다시 검색
+                db_channel = crud.get_youtube_channel_by_id(db, channel_id=real_channel_id)
+                if db_channel:
+                    logger.info(f"실제 채널 ID로 삭제 시도: {real_channel_id}")
+                    crud.delete_youtube_channel(db=db, channel_id=real_channel_id)
+                    return Response(status_code=status.HTTP_204_NO_CONTENT)
+        
+        # 기존 로직으로 시도
         db_channel = crud.get_youtube_channel_by_id(db, channel_id=channel_id)
         if db_channel is None:
             logger.warning(f"존재하지 않는 채널 ID: {channel_id}")
+            
+            # URL 형식 채널 ID로 직접 검색 시도
+            direct_query = db.query(DBYoutubeChannel).filter(DBYoutubeChannel.channel_id == channel_id).first()
+            if direct_query:
+                logger.info(f"URL 형식 채널 ID로 직접 삭제: {channel_id}")
+                crud.delete_youtube_channel(db=db, channel_id=channel_id)
+                return Response(status_code=status.HTTP_204_NO_CONTENT)
+                
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="채널을 찾을 수 없습니다."
             )
+            
         crud.delete_youtube_channel(db=db, channel_id=channel_id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     except HTTPException:
@@ -264,8 +303,27 @@ def delete_keyword(keyword_id: int, db: Session = Depends(get_db)):
 def search_videos_by_channel(channel_id: str, db: Session = Depends(get_db)):
     try:
         logger.info(f"채널 비디오 검색 요청: channel_id={channel_id}")
-        # 채널 존재 여부 확인
-        db_channel = crud.get_youtube_channel_by_id(db, channel_id=channel_id)
+        
+        # URL 형태의 채널 ID인 경우 실제 채널 ID 추출 시도
+        real_channel_id = channel_id
+        if channel_id.startswith('http') or channel_id.startswith('@'):
+            youtube_service = YouTubeService()
+            channel_info = youtube_service.get_channel_info(channel_id)
+            if "error" not in channel_info:
+                real_channel_id = channel_info['channel_id']
+                logger.info(f"URL에서 추출한 실제 채널 ID: {real_channel_id}")
+        
+        # 실제 채널 ID로 DB 검색
+        db_channel = crud.get_youtube_channel_by_id(db, channel_id=real_channel_id)
+        
+        # 실제 채널 ID로 찾지 못한 경우 원본 채널 ID로 시도
+        if db_channel is None and real_channel_id != channel_id:
+            db_channel = crud.get_youtube_channel_by_id(db, channel_id=channel_id)
+            
+            # URL 형식으로 직접 검색 시도
+            if db_channel is None:
+                db_channel = db.query(DBYoutubeChannel).filter(DBYoutubeChannel.channel_id == channel_id).first()
+                
         if db_channel is None:
             logger.warning(f"존재하지 않는 채널 ID: {channel_id}")
             raise HTTPException(
@@ -276,7 +334,13 @@ def search_videos_by_channel(channel_id: str, db: Session = Depends(get_db)):
         # YouTube API 호출
         try:
             youtube_service = YouTubeService()
-            videos = youtube_service.get_channel_videos(channel_id)
+            logger.info(f"YouTube API 채널 비디오 검색 시작: 채널 ID={db_channel.channel_id}")
+            videos = youtube_service.get_channel_videos(db_channel.channel_id)
+            logger.info(f"YouTube API 채널 비디오 검색 결과: {len(videos)}개 비디오 발견")
+            
+            if not videos:
+                logger.warning(f"채널 {db_channel.channel_id}에서 비디오를 찾을 수 없음")
+                
             return videos
         except Exception as e:
             logger.error(f"YouTube API 호출 중 오류: {str(e)}")

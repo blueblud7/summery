@@ -34,6 +34,9 @@ async function addChannel() {
         return;
     }
     
+    // 로딩 메시지 표시
+    showMessage('채널 정보를 가져오는 중...', 'info');
+    
     try {
         // 입력값을 그대로 서버로 전송
         const response = await fetch('/api/v1/youtube/channels/', {
@@ -46,18 +49,30 @@ async function addChannel() {
             }),
         });
         
+        const result = await response.json();
+        
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || '채널 추가 실패');
+            // 자세한 오류 메시지 처리
+            const errorMsg = result.detail || '채널 추가 실패';
+            console.error('채널 추가 중 API 오류:', errorMsg);
+            
+            // 일반적인 오류 메시지 대신 더 구체적인 오류 메시지 표시
+            if (errorMsg.includes('Channel not found')) {
+                showMessage('채널을 찾을 수 없습니다. 정확한 채널 ID 또는 URL을 입력해주세요.', 'error');
+            } else if (errorMsg.includes('이미 등록된 채널')) {
+                showMessage('이미 등록된 채널입니다.', 'warning');
+            } else {
+                showMessage(errorMsg, 'error');
+            }
+            return;
         }
         
-        const result = await response.json();
         showMessage(`채널 "${result.title}"이(가) 추가되었습니다.`, 'success');
         document.getElementById('channelId').value = '';
         loadChannels();
     } catch (error) {
         console.error('채널 추가 중 오류:', error);
-        showMessage(error.message || '채널 추가에 실패했습니다.', 'error');
+        showMessage('서버 연결 중 오류가 발생했습니다. 나중에 다시 시도해주세요.', 'error');
     }
 }
 
@@ -67,13 +82,21 @@ async function deleteChannel(channelId) {
     }
     
     try {
-        const response = await fetch(`/api/v1/youtube/channels/${channelId}`, {
+        console.log(`채널 삭제 요청: ${channelId}`);
+        const response = await fetch(`/api/v1/youtube/channels/${encodeURIComponent(channelId)}`, {
             method: 'DELETE',
         });
         
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || '채널 삭제 실패');
+            let errorMessage = '채널 삭제 실패';
+            try {
+                const error = await response.json();
+                errorMessage = error.detail || errorMessage;
+            } catch (parseError) {
+                console.error('응답 파싱 오류:', parseError);
+            }
+            console.error(`채널 삭제 실패 (${response.status}): ${errorMessage}`);
+            throw new Error(errorMessage);
         }
         
         showMessage('채널이 삭제되었습니다.', 'success');
@@ -86,13 +109,36 @@ async function deleteChannel(channelId) {
 
 async function getChannelVideos(channelId) {
     try {
+        showMessage(`'${channelId}' 채널의 영상 불러오는 중...`, 'info');
+        
         const response = await fetch(`/api/v1/youtube/search/by-channel/${channelId}`);
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('채널 영상 로드 오류:', errorData);
+            
+            // 오류 유형에 따른 맞춤형 메시지
+            if (response.status === 404) {
+                showMessage('등록된 채널을 찾을 수 없습니다. 다시 시도해주세요.', 'error');
+            } else {
+                showMessage(errorData.detail || '채널 영상을 불러오는 데 실패했습니다.', 'error');
+            }
+            return;
+        }
+        
         const videos = await response.json();
         
+        if (videos.length === 0) {
+            showMessage(`'${channelId}' 채널에서 영상을 찾을 수 없습니다. 채널 ID를 확인해주세요.`, 'warning');
+            displayVideos([]); // 빈 결과 표시
+            return;
+        }
+        
+        showMessage(`'${channelId}' 채널의 영상 ${videos.length}개를 불러왔습니다.`, 'success');
         displayVideos(videos);
     } catch (error) {
         console.error('채널 영상 로드 중 오류:', error);
-        showMessage('채널 영상을 불러오는 데 실패했습니다.', 'error');
+        showMessage('채널 영상을 불러오는 데 실패했습니다. 네트워크 연결을 확인해주세요.', 'error');
     }
 }
 

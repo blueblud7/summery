@@ -103,10 +103,13 @@ class YouTubeService:
         # '@' 형식의 핸들 처리
         if channel_id.startswith('@'):
             def request_by_handle():
-                # 핸들로 채널 검색
+                # 핸들로 채널 검색 - 더 정확한 검색을 위해 정확한 채널명 검색
+                handle = channel_id  # 예: @yunjadong
+                
+                # 정확한 채널명 검색을 위한 쿼리 구성
                 request = self.youtube.search().list(
                     part="snippet",
-                    q=channel_id,
+                    q=handle,
                     type="channel",
                     maxResults=1
                 )
@@ -117,7 +120,7 @@ class YouTubeService:
                     return {"error": "Channel not found"}
                 
                 channel_item = response['items'][0]
-                real_channel_id = channel_item['snippet']['channelId']
+                real_channel_id = channel_item['id']['channelId']
                 
                 # 실제 채널 ID로 추가 정보 요청
                 channel_request = self.youtube.channels().list(
@@ -127,7 +130,7 @@ class YouTubeService:
                 channel_response = channel_request.execute()
                 
                 if not channel_response['items']:
-                    return None
+                    return {"error": "Channel details not found"}
                     
                 channel = channel_response['items'][0]
                 return {
@@ -155,7 +158,7 @@ class YouTubeService:
                     return {"error": "Channel not found"}
                 
                 channel_item = response['items'][0]
-                real_channel_id = channel_item['snippet']['channelId']
+                real_channel_id = channel_item['id']['channelId']
                 
                 # 실제 채널 ID로 추가 정보 요청
                 channel_request = self.youtube.channels().list(
@@ -165,7 +168,7 @@ class YouTubeService:
                 channel_response = channel_request.execute()
                 
                 if not channel_response['items']:
-                    return None
+                    return {"error": "Channel details not found"}
                     
                 channel = channel_response['items'][0]
                 return {
@@ -185,7 +188,7 @@ class YouTubeService:
                 response = request.execute()
                 
                 if not response['items']:
-                    return None
+                    return {"error": "Channel not found"}
                     
                 channel = response['items'][0]
                 return {
@@ -256,42 +259,75 @@ class YouTubeService:
 
     def get_channel_videos(self, channel_id: str, max_results: int = 50) -> List[Dict[str, Any]]:
         def request():
-            # First, get the uploads playlist ID
-            request = self.youtube.channels().list(
-                part="contentDetails",
-                id=channel_id
-            )
-            response = request.execute()
-            
-            if not response['items']:
+            try:
+                # First, get the uploads playlist ID
+                logger.info(f"채널 정보 요청: 채널 ID={channel_id}")
+                request = self.youtube.channels().list(
+                    part="contentDetails,snippet",
+                    id=channel_id
+                )
+                response = request.execute()
+                
+                if not response.get('items'):
+                    logger.warning(f"채널 {channel_id}에 대한 정보를 찾을 수 없음")
+                    
+                    # 채널 ID가 핸들 또는 사용자 정의 URL인 경우 검색 시도
+                    if channel_id.startswith('@') or channel_id.startswith('c/') or channel_id.startswith('user/'):
+                        logger.info(f"핸들 또는 커스텀 URL로 채널 검색 시도: {channel_id}")
+                        
+                        # 채널 정보 가져오기
+                        channel_info = self.get_channel_info(channel_id)
+                        if "error" in channel_info:
+                            logger.error(f"채널 {channel_id} 정보 조회 실패: {channel_info['error']}")
+                            return []
+                            
+                        # 실제 채널 ID로 다시 시도
+                        real_channel_id = channel_info['channel_id']
+                        logger.info(f"실제 채널 ID 발견: {real_channel_id}, 비디오 검색 재시도")
+                        
+                        return self.get_channel_videos(real_channel_id, max_results)
+                    
+                    return []
+                
+                channel_item = response['items'][0]
+                channel_title = channel_item['snippet']['title']
+                logger.info(f"채널 제목: {channel_title}")
+                
+                uploads_playlist_id = channel_item['contentDetails']['relatedPlaylists']['uploads']
+                logger.info(f"업로드 플레이리스트 ID: {uploads_playlist_id}")
+                
+                # Then, get the videos from the uploads playlist
+                logger.info(f"채널 업로드 비디오 요청: 플레이리스트 ID={uploads_playlist_id}")
+                request = self.youtube.playlistItems().list(
+                    part="snippet",
+                    playlistId=uploads_playlist_id,
+                    maxResults=max_results
+                )
+                response = request.execute()
+                
+                videos = []
+                for item in response.get('items', []):
+                    try:
+                        video = {
+                            'video_id': item['snippet']['resourceId']['videoId'],
+                            'title': item['snippet']['title'],
+                            'description': item['snippet']['description'],
+                            'published_at': datetime.strptime(
+                                item['snippet']['publishedAt'],
+                                '%Y-%m-%dT%H:%M:%SZ'
+                            ),
+                            'channel_id': channel_id,
+                            'channel_title': item['snippet']['channelTitle']
+                        }
+                        videos.append(video)
+                    except Exception as parse_error:
+                        logger.error(f"비디오 항목 파싱 오류: {str(parse_error)}")
+                
+                logger.info(f"총 {len(videos)}개의 비디오 항목을 가져왔습니다.")
+                return videos
+            except Exception as e:
+                logger.error(f"채널 비디오 가져오기 오류: {str(e)}")
                 return []
-                
-            uploads_playlist_id = response['items'][0]['contentDetails']['relatedPlaylists']['uploads']
-            
-            # Then, get the videos from the uploads playlist
-            request = self.youtube.playlistItems().list(
-                part="snippet",
-                playlistId=uploads_playlist_id,
-                maxResults=max_results
-            )
-            response = request.execute()
-            
-            videos = []
-            for item in response['items']:
-                video = {
-                    'video_id': item['snippet']['resourceId']['videoId'],
-                    'title': item['snippet']['title'],
-                    'description': item['snippet']['description'],
-                    'published_at': datetime.strptime(
-                        item['snippet']['publishedAt'],
-                        '%Y-%m-%dT%H:%M:%SZ'
-                    ),
-                    'channel_id': channel_id,
-                    'channel_title': item['snippet']['channelTitle']
-                }
-                videos.append(video)
-                
-            return videos
         
         return self._make_request(request, lambda: self._mock_channel_videos(channel_id, max_results))
 
