@@ -83,7 +83,14 @@ async function deleteChannel(channelId) {
     
     try {
         console.log(`채널 삭제 요청: ${channelId}`);
-        const response = await fetch(`/api/v1/youtube/channels/${encodeURIComponent(channelId)}`, {
+        
+        // URL에 포함될 수 있는 특수문자 인코딩
+        const encodedChannelId = encodeURIComponent(channelId);
+        console.log(`인코딩된 채널 ID: ${encodedChannelId}`);
+        
+        showMessage('채널 삭제 중...', 'info');
+        
+        const response = await fetch(`/api/v1/youtube/channels/${encodedChannelId}`, {
             method: 'DELETE',
         });
         
@@ -111,10 +118,20 @@ async function getChannelVideos(channelId) {
     try {
         showMessage(`'${channelId}' 채널의 영상 불러오는 중...`, 'info');
         
-        const response = await fetch(`/api/v1/youtube/search/by-channel/${channelId}`);
+        // URL에 포함될 수 있는 특수문자 인코딩
+        const encodedChannelId = encodeURIComponent(channelId);
+        console.log(`채널 비디오 검색 요청: ${channelId} (인코딩: ${encodedChannelId})`);
+        
+        const response = await fetch(`/api/v1/youtube/search/by-channel/${encodedChannelId}`);
         
         if (!response.ok) {
-            const errorData = await response.json();
+            let errorData = { detail: '채널 영상을 불러오는 데 실패했습니다.' };
+            try {
+                errorData = await response.json();
+            } catch (parseError) {
+                console.error('오류 응답 파싱 실패:', parseError);
+            }
+            
             console.error('채널 영상 로드 오류:', errorData);
             
             // 오류 유형에 따른 맞춤형 메시지

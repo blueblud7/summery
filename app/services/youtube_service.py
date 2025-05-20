@@ -847,4 +847,29 @@ class YouTubeService:
             }
         except Exception as e:
             logger.error(f"Error summarizing video: {str(e)}")
-            return {"error": f"동영상 요약 중 오류가 발생했습니다: {str(e)}"} 
+            return {"error": f"동영상 요약 중 오류가 발생했습니다: {str(e)}"}
+
+    def search_by_handle_or_custom_url(self, channel_identifier: str) -> List[Dict[str, Any]]:
+        """
+        핸들 또는 커스텀 URL을 사용하여 채널의 비디오를 검색합니다.
+        :param channel_identifier: '@핸들' 또는 'c/커스텀URL' 또는 'user/사용자명' 형식의 식별자
+        :return: 비디오 목록
+        """
+        try:
+            logger.info(f"핸들 또는 커스텀 URL로 채널 검색: {channel_identifier}")
+            
+            # 먼저 채널 정보를 가져옵니다
+            channel_info = self.get_channel_info(channel_identifier)
+            if "error" in channel_info:
+                logger.warning(f"채널 정보를 가져올 수 없음: {channel_info['error']}")
+                return []
+                
+            # 실제 채널 ID를 사용하여 비디오를 가져옵니다
+            real_channel_id = channel_info['channel_id']
+            logger.info(f"변환된 실제 채널 ID: {real_channel_id}")
+            
+            # 실제 채널 ID로 비디오 검색
+            return self.get_channel_videos(real_channel_id)
+        except Exception as e:
+            logger.error(f"핸들 또는 커스텀 URL로 채널 검색 중 오류: {str(e)}")
+            return [] 
