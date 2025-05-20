@@ -270,18 +270,33 @@ function showMessage(message, type = 'info') {
     }, 5000);
 }
 
-// 페이지 로드 시 실행
-document.addEventListener('DOMContentLoaded', () => {
-    loadChannels();
-    loadKeywords();
+// 초기화 함수
+document.addEventListener('DOMContentLoaded', function() {
+    // URL 쿼리 파라미터에 따라 적절한 탭 표시
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
     
-    // 이벤트 리스너 등록
-    document.getElementById('addChannelForm').addEventListener('submit', (e) => {
+    if (tab === 'channels') {
+        switchTab('channels');
+        loadChannels();
+    } else if (tab === 'keywords') {
+        switchTab('keywords');
+        loadKeywords();
+    } else if (tab === 'search') {
+        // 검색 관련 초기화 코드 (필요한 경우)
+    } else {
+        // 기본 탭 (manage 페이지, 쿼리 파라미터 없을 때)
+        loadChannels();
+        loadKeywords();
+    }
+    
+    // 폼 제출 이벤트 연결
+    document.getElementById('addChannelForm').addEventListener('submit', function(e) {
         e.preventDefault();
         addChannel();
     });
     
-    document.getElementById('addKeywordForm').addEventListener('submit', (e) => {
+    document.getElementById('addKeywordForm').addEventListener('submit', function(e) {
         e.preventDefault();
         addKeyword();
     });
