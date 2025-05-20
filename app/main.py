@@ -7,6 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api.endpoints import summarizer, history
 from app.core.config import settings
 from app.db.database import init_db
+from app.db.models import YoutubeChannel, YoutubeKeyword, Video, SummaryHistory
 import os
 
 # 로깅 설정

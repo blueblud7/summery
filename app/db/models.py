@@ -1,9 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, JSON
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
-
-Base = declarative_base()
+from app.db.database import Base
 
 class YoutubeChannel(Base):
     __tablename__ = "youtube_channels"
@@ -53,7 +51,7 @@ class SummaryHistory(Base):
             "original_text": self.original_text[:200] + "..." if self.original_text and len(self.original_text) > 200 else self.original_text,
             "summary_text": self.summary_text,
             "key_phrases": self.key_phrases,
-            "metadata": self.source_info,
+            "source_info": self.source_info,
             "quality_score": self.quality_score,
             "model_used": self.model_used,
             "created_at": self.created_at.isoformat() if self.created_at else None

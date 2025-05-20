@@ -23,13 +23,13 @@ class SummarizeRequest(BaseModel):
     text: str
     style: str = "simple"
     max_length: int = 200
-    language: str = "ko"
+    language: str = "en"
     format: str = "text"
     model: Optional[str] = None
 
 class YouTubeSummarizeRequest(BaseModel):
     url: str
-    language: str = "ko"
+    language: str = "en"
     model: Optional[str] = None
 
 class DocumentSummarizeResponse(BaseModel):
@@ -51,7 +51,7 @@ class BatchSummarizeRequest(BaseModel):
     youtube_urls: Optional[List[str]] = []
     style: str = "simple"
     max_length: int = 200
-    language: str = "ko"
+    language: str = "en"
     format: str = "text"
     model: Optional[str] = None
 
@@ -67,7 +67,7 @@ async def summarize_text(request: SummarizeRequest, db: Session = Depends(get_db
         # 모델 확인 및 유효성 검사
         model = request.model or settings.DEFAULT_MODEL
         if model not in settings.AVAILABLE_MODELS:
-            logger.warning(f"요청된 모델 {model}이 유효하지 않습니다. 기본 모델로 대체합니다.")
+            logger.warning(f"Requested model {model} is not valid. Using default model instead.")
             model = settings.DEFAULT_MODEL
             
         summarization_result = summarizer_service.summarize_text(
@@ -113,7 +113,7 @@ async def summarize_youtube(request: YouTubeSummarizeRequest, db: Session = Depe
         # 모델 확인 및 유효성 검사
         model = request.model or settings.DEFAULT_MODEL
         if model not in settings.AVAILABLE_MODELS:
-            logger.warning(f"요청된 모델 {model}이 유효하지 않습니다. 기본 모델로 대체합니다.")
+            logger.warning(f"Requested model {model} is not valid. Using default model instead.")
             model = settings.DEFAULT_MODEL
             
         video_result = youtube_service.summarize_video(
@@ -130,8 +130,8 @@ async def summarize_youtube(request: YouTubeSummarizeRequest, db: Session = Depe
             history_service = HistoryService(db)
             history_service.save_youtube_summary(
                 video_url=request.url,
-                video_title=video_result.get("title", "제목 없음"),
-                channel_name=video_result.get("channel", "채널 정보 없음"),
+                video_title=video_result.get("title", "No Title"),
+                channel_name=video_result.get("channel", "No Channel Info"),
                 original_transcript=video_result.get("transcript", ""),
                 summary_text=video_result["summary"],
                 model_used=model
@@ -147,7 +147,7 @@ async def summarize_document(
     file: UploadFile = File(...),
     style: str = Form("simple"),
     max_length: int = Form(200),
-    language: str = Form("ko"),
+    language: str = Form("en"),
     format: str = Form("text"),
     model: Optional[str] = Form(None),
     db: Session = Depends(get_db)
@@ -156,7 +156,7 @@ async def summarize_document(
         # 모델 확인 및 유효성 검사
         use_model = model or settings.DEFAULT_MODEL
         if use_model not in settings.AVAILABLE_MODELS:
-            logger.warning(f"요청된 모델 {use_model}이 유효하지 않습니다. 기본 모델로 대체합니다.")
+            logger.warning(f"Requested model {use_model} is not valid. Using default model instead.")
             use_model = settings.DEFAULT_MODEL
             
         # 임시 파일 생성
@@ -172,7 +172,7 @@ async def summarize_document(
             text = document_service.extract_text_from_file(temp_path)
             
             if not text:
-                raise HTTPException(status_code=400, detail=f"파일에서 텍스트를 추출할 수 없습니다: {file.filename}")
+                raise HTTPException(status_code=400, detail=f"Could not extract text from file: {file.filename}")
             
             # 요약 수행
             summary_result = summarizer_service.summarize_text(
@@ -217,7 +217,7 @@ async def summarize_document(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/batch-summarize", response_model=BatchSummarizeResponse)
-async def batch_summarize(request: BatchSummarizeRequest, background_tasks: BackgroundTasks):
+async def batch_summarize(request: BatchSummarizeRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     여러 텍스트, 유튜브 링크, 문서 파일을 일괄 요약하는 API
     """
@@ -233,6 +233,9 @@ async def batch_summarize(request: BatchSummarizeRequest, background_tasks: Back
             youtube_summaries=[],
             document_summaries=[]
         )
+        
+        # 히스토리 서비스 초기화
+        history_service = HistoryService(db)
         
         # 텍스트 요약 처리
         for text_req in request.texts:
@@ -256,6 +259,14 @@ async def batch_summarize(request: BatchSummarizeRequest, background_tasks: Back
                 key_phrases = summarizer_service.extract_key_phrases(text_req.text, model=text_model)
                 result["key_phrases"] = key_phrases
                 
+                # 히스토리에 저장
+                history_service.save_text_summary(
+                    original_text=text_req.text,
+                    summary_text=result["summary"],
+                    key_phrases=key_phrases,
+                    model_used=text_model
+                )
+                
                 response.text_summaries.append(result)
             except Exception as e:
                 logger.error(f"텍스트 요약 중 오류: {str(e)}")
@@ -269,6 +280,18 @@ async def batch_summarize(request: BatchSummarizeRequest, background_tasks: Back
                     language_code=request.language,
                     model=model
                 )
+                
+                # 히스토리에 저장
+                if "summary" in video_result:
+                    history_service.save_youtube_summary(
+                        video_url=url,
+                        video_title=video_result.get("title", "No Title"),
+                        channel_name=video_result.get("channel", "No Channel Info"),
+                        original_transcript=video_result.get("transcript", ""),
+                        summary_text=video_result["summary"],
+                        model_used=model
+                    )
+                
                 response.youtube_summaries.append(video_result)
             except Exception as e:
                 logger.error(f"유튜브 요약 중 오류: {str(e)}")

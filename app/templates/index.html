@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 통합 요약 서비스</title>
+    <title>AI Text Summarizer</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css" rel="stylesheet">
     <style>
@@ -76,33 +76,33 @@
     <!-- 사이드바 -->
     <aside id="sidebar" class="sidebar overflow-y-auto">
         <div class="p-4 border-b border-gray-800">
-            <h2 class="text-xl font-bold">AI 요약 도구</h2>
+            <h2 class="text-xl font-bold">Summer AI</h2>
         </div>
         
         <!-- 사이드바 탭 -->
         <div class="border-b border-gray-800">
             <div class="flex">
                 <button id="tab-summary" class="flex-1 px-4 py-2 text-center bg-blue-600 text-white">
-                    <i class="fas fa-file-alt mr-2"></i>요약
+                    <i class="fas fa-file-alt mr-2"></i>Summary
                 </button>
                 <button id="tab-history" class="flex-1 px-4 py-2 text-center hover:bg-gray-700">
-                    <i class="fas fa-history mr-2"></i>히스토리
+                    <i class="fas fa-history mr-2"></i>History
                 </button>
             </div>
         </div>
         
         <!-- 요약 탭 콘텐츠 -->
         <div id="summary-tab-content" class="p-4">
-            <p class="text-sm mb-4">다양한 컨텐츠를 빠르게 요약하세요.</p>
+            <p class="text-sm mb-4">Quickly summarize various types of content.</p>
             <div class="space-y-3">
                 <button id="side-add-text" class="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-left">
-                    <i class="fas fa-font mr-2"></i>텍스트 요약
+                    <i class="fas fa-font mr-2"></i>Text Summary
                 </button>
                 <button id="side-add-youtube" class="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-left">
-                    <i class="fab fa-youtube mr-2"></i>유튜브 요약
+                    <i class="fab fa-youtube mr-2"></i>YouTube Summary
                 </button>
                 <button id="side-add-document" class="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-left">
-                    <i class="fas fa-file-alt mr-2"></i>문서 요약
+                    <i class="fas fa-file-alt mr-2"></i>Document Summary
                 </button>
             </div>
         </div>
@@ -110,13 +110,13 @@
         <!-- 히스토리 탭 콘텐츠 -->
         <div id="history-tab-content" class="p-4 hidden">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-sm font-medium">최근 요약 내역</h3>
+                <h3 class="text-sm font-medium">Recent Summaries</h3>
                 <button id="refresh-history" class="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded">
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
             <div id="history-items" class="space-y-2">
-                <p class="text-xs text-gray-400 text-center p-4">로딩 중...</p>
+                <p class="text-xs text-gray-400 text-center p-4">Loading...</p>
             </div>
         </div>
     </aside>
@@ -125,64 +125,70 @@
     <div class="main-content">
         <div class="container mx-auto px-4 py-8">
             <header class="text-center mb-8">
-                <h1 class="text-4xl font-bold text-gray-800 mb-2">AI 통합 요약 서비스</h1>
-                <p class="text-gray-600">텍스트, 유튜브 동영상, 문서를 쉽고 빠르게 요약합니다.</p>
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Summer AI</h1>
+                <p class="text-gray-600">Easily summarize text, YouTube videos, and documents.</p>
             </header>
 
             <!-- 통합 요약 인터페이스 -->
             <div class="max-w-5xl mx-auto bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-2xl font-semibold mb-4">여러 항목 요약</h2>
-                <p class="text-gray-700 mb-4">텍스트, 유튜브 링크, 문서 파일을 여러 개 추가하고 한 번에 요약할 수 있습니다.</p>
+                <h2 class="text-2xl font-semibold mb-4">Multi-Item Summary</h2>
+                <p class="text-gray-700 mb-4">Add multiple texts, YouTube links, and document files to summarize all at once.</p>
                 
                 <!-- 항목 추가 버튼 -->
                 <div class="flex flex-wrap gap-4 mb-6">
                     <button id="add-text-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-                        <i class="fas fa-font mr-2"></i>텍스트 추가
+                        <i class="fas fa-font mr-2"></i>Add Text
                     </button>
                     <button id="add-youtube-btn" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">
-                        <i class="fab fa-youtube mr-2"></i>유튜브 링크 추가
+                        <i class="fab fa-youtube mr-2"></i>Add YouTube Link
                     </button>
                     <button id="add-document-btn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition">
-                        <i class="fas fa-file-alt mr-2"></i>문서 파일 추가
+                        <i class="fas fa-file-alt mr-2"></i>Add Document
                     </button>
                 </div>
                 
                 <!-- 공통 요약 설정 -->
                 <div class="bg-gray-100 p-4 rounded-lg mb-6">
-                    <h3 class="text-lg font-medium mb-2">공통 요약 설정</h3>
+                    <h3 class="text-lg font-medium mb-2">Summary Settings</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                            <label for="style-select" class="block text-sm font-medium text-gray-700 mb-1">요약 스타일</label>
+                            <label for="style-select" class="block text-sm font-medium text-gray-700 mb-1">Style</label>
                             <select id="style-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <option value="simple">간결하게</option>
-                                <option value="detailed">상세하게</option>
-                                <option value="expert">전문적으로</option>
-                                <option value="beginner">초보자용</option>
-                                <option value="academic">학술적으로</option>
-                                <option value="creative">창의적으로</option>
+                                <option value="simple">Concise</option>
+                                <option value="detailed">Detailed</option>
+                                <option value="expert">Expert</option>
+                                <option value="beginner">Beginner-friendly</option>
+                                <option value="academic">Academic</option>
+                                <option value="creative">Creative</option>
                             </select>
                         </div>
                         <div>
-                            <label for="format-select" class="block text-sm font-medium text-gray-700 mb-1">출력 형식</label>
+                            <label for="format-select" class="block text-sm font-medium text-gray-700 mb-1">Output Format</label>
                             <select id="format-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <option value="text">일반 텍스트</option>
-                                <option value="bullet">글머리 기호</option>
-                                <option value="structured">구조화된 형식</option>
-                                <option value="qa">Q&A 형식</option>
+                                <option value="text">Plain Text</option>
+                                <option value="bullet">Bullet Points</option>
+                                <option value="structured">Structured</option>
+                                <option value="qa">Q&A Format</option>
                             </select>
                         </div>
                         <div>
-                            <label for="language-select" class="block text-sm font-medium text-gray-700 mb-1">언어</label>
+                            <label for="language-select" class="block text-sm font-medium text-gray-700 mb-1">Language</label>
                             <select id="language-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <option value="ko">한국어</option>
-                                <option value="en">영어</option>
-                                <option value="ja">일본어</option>
-                                <option value="zh">중국어</option>
+                                <option value="en">English</option>
+                                <option value="ko">Korean</option>
+                                <option value="ja">Japanese</option>
+                                <option value="zh">Chinese</option>
                             </select>
                         </div>
                         <div>
-                            <label for="max-length" class="block text-sm font-medium text-gray-700 mb-1">최대 길이</label>
-                            <input type="number" id="max-length" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" value="200" min="50" max="1000">
+                            <label for="max-length-select" class="block text-sm font-medium text-gray-700 mb-1">Max Length</label>
+                            <select id="max-length-select" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="200">200 characters</option>
+                                <option value="500">500 characters</option>
+                                <option value="1000">1000 characters</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                            <input type="number" id="custom-length" class="mt-2 w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 hidden" value="200" min="50" max="5000">
                         </div>
                     </div>
                 </div>
@@ -191,30 +197,30 @@
                 <div id="items-container" class="mb-6">
                     <!-- 여기에 동적으로 항목 추가 -->
                     <div class="text-gray-500 text-center p-4 border border-dashed rounded-lg">
-                        위 버튼을 클릭하여 요약할 항목을 추가하세요.
+                        Click the buttons above to add items for summarization.
                     </div>
                 </div>
                 
                 <!-- 요약 버튼 -->
                 <div class="text-center mb-6">
                     <button id="summarize-btn" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
-                        <i class="fas fa-magic mr-2"></i>모든 항목 요약하기
+                        <i class="fas fa-magic mr-2"></i>Summarize All Items
                     </button>
                 </div>
                 
                 <!-- 로딩 표시 -->
                 <div id="loading" class="hidden text-center p-4">
                     <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-                    <p class="text-indigo-600 mt-2">요약 중입니다. 잠시만 기다려주세요...</p>
+                    <p class="text-indigo-600 mt-2">Summarizing... Please wait...</p>
                 </div>
                 
                 <!-- 요약 결과 -->
                 <div id="results-container" class="hidden">
-                    <h3 class="text-xl font-semibold mb-4 border-b pb-2">요약 결과</h3>
+                    <h3 class="text-xl font-semibold mb-4 border-b pb-2">Summary Results</h3>
                     
                     <!-- 전체 요약 -->
                     <div id="overall-summary" class="mb-6 p-4 bg-indigo-50 rounded-lg hidden">
-                        <h4 class="text-lg font-medium text-indigo-800 mb-2">전체 요약</h4>
+                        <h4 class="text-lg font-medium text-indigo-800 mb-2">Overall Summary</h4>
                         <div id="overall-summary-content" class="text-gray-800"></div>
                     </div>
                     
@@ -237,6 +243,8 @@
         const individualResults = document.getElementById('individual-results');
         const overallSummary = document.getElementById('overall-summary');
         const overallSummaryContent = document.getElementById('overall-summary-content');
+        const maxLengthSelect = document.getElementById('max-length-select');
+        const customLength = document.getElementById('custom-length');
         
         // 초기화 및 이벤트 리스너
         document.addEventListener('DOMContentLoaded', function() {
@@ -247,6 +255,15 @@
             
             // 요약 버튼 이벤트 리스너
             summarizeBtn.addEventListener('click', summarizeAll);
+            
+            // Max length select event listener
+            maxLengthSelect.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    customLength.classList.remove('hidden');
+                } else {
+                    customLength.classList.add('hidden');
+                }
+            });
             
             // 첫 로드 시 안내 메시지 표시
             updateItemsContainer();
@@ -264,9 +281,9 @@
                         <i class="fas fa-times"></i>
                     </button>
                     <div class="mb-2">
-                        <strong><i class="fas fa-font mr-1"></i> 텍스트</strong>
+                        <strong><i class="fas fa-font mr-1"></i> Text</strong>
                     </div>
-                    <textarea class="w-full h-32 rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-content" placeholder="요약할 텍스트를 입력하세요"></textarea>
+                    <textarea class="w-full h-32 rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-content" placeholder="Enter text to summarize"></textarea>
                 </div>
             `;
             appendItem(html);
@@ -281,9 +298,9 @@
                         <i class="fas fa-times"></i>
                     </button>
                     <div class="mb-2">
-                        <strong><i class="fab fa-youtube mr-1 text-red-600"></i> 유튜브 링크</strong>
+                        <strong><i class="fab fa-youtube mr-1 text-red-600"></i> YouTube Link</strong>
                     </div>
-                    <input type="url" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 url-content" placeholder="유튜브 URL을 입력하세요 (예: https://www.youtube.com/watch?v=...)">
+                    <input type="url" class="w-full rounded border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 url-content" placeholder="Enter YouTube URL (e.g., https://www.youtube.com/watch?v=...)">
                 </div>
             `;
             appendItem(html);
@@ -298,7 +315,7 @@
                         <i class="fas fa-times"></i>
                     </button>
                     <div class="mb-2">
-                        <strong><i class="fas fa-file-alt mr-1 text-green-600"></i> 문서 파일</strong>
+                        <strong><i class="fas fa-file-alt mr-1 text-green-600"></i> Document File</strong>
                     </div>
                     <input type="file" class="w-full p-2 border border-gray-300 rounded file-content" accept=".txt,.pdf,.doc,.docx">
                 </div>
@@ -343,7 +360,7 @@
                 // 항목이 없을 때 안내 메시지 표시
                 itemsContainer.innerHTML = `
                     <div class="text-gray-500 text-center p-4 border border-dashed rounded-lg">
-                        위 버튼을 클릭하여 요약할 항목을 추가하세요.
+                        Click the buttons above to add items for summarization.
                     </div>
                 `;
             }
@@ -362,7 +379,7 @@
             const documentItems = itemsContainer.querySelectorAll('.document-item');
             
             if (textItems.length === 0 && youtubeItems.length === 0 && documentItems.length === 0) {
-                alert('요약할 항목을 하나 이상 추가해주세요.');
+                alert('Please add at least one item to summarize.');
                 return;
             }
             
@@ -374,14 +391,14 @@
             const style = document.getElementById('style-select').value;
             const format = document.getElementById('format-select').value;
             const language = document.getElementById('language-select').value;
-            const maxLength = document.getElementById('max-length').value;
+            const maxLength = getMaxLength();
             
             // 배치 요약 요청 데이터 준비
             const batchRequest = {
                 texts: [],
                 youtube_urls: [],
                 style: style,
-                max_length: parseInt(maxLength),
+                max_length: maxLength,
                 language: language,
                 format: format
             };
@@ -393,7 +410,7 @@
                     batchRequest.texts.push({
                         text: textContent,
                         style: style,
-                        max_length: parseInt(maxLength),
+                        max_length: maxLength,
                         language: language,
                         format: format
                     });
@@ -491,7 +508,7 @@
                 const html = `
                     <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                         <h4 class="font-medium text-blue-800 mb-2">
-                            <i class="fas fa-font mr-1"></i> 텍스트 요약 ${index + 1}
+                            <i class="fas fa-font mr-1"></i> Text Summary ${index + 1}
                         </h4>
                         ${result.error ? 
                             `<div class="text-red-600">오류: ${result.error}</div>` : 
@@ -518,7 +535,7 @@
                 const html = `
                     <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                         <h4 class="font-medium text-red-800 mb-2">
-                            <i class="fab fa-youtube mr-1"></i> 유튜브 요약 ${index + 1}
+                            <i class="fab fa-youtube mr-1"></i> YouTube Summary ${index + 1}
                         </h4>
                         ${result.error ? 
                             `<div class="text-red-600">오류: ${result.error}</div>` :
@@ -538,7 +555,7 @@
                 const html = `
                     <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                         <h4 class="font-medium text-green-800 mb-2">
-                            <i class="fas fa-file-alt mr-1"></i> 문서 요약 ${index + 1}
+                            <i class="fas fa-file-alt mr-1"></i> Document Summary ${index + 1}
                         </h4>
                         ${result.error ? 
                             `<div class="text-red-600">오류: ${result.error}</div>` :
@@ -612,7 +629,7 @@
         // 히스토리 불러오기
         function loadHistory() {
             const historyItems = document.getElementById('history-items');
-            historyItems.innerHTML = '<p class="text-xs text-gray-400 text-center p-4">로딩 중...</p>';
+            historyItems.innerHTML = '<p class="text-xs text-gray-400 text-center p-4">Loading...</p>';
             
             fetch('/api/v1/history/list')
                 .then(response => response.json())
@@ -624,18 +641,18 @@
                             const formattedDate = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
                             
                             let icon = 'fas fa-file-alt';
-                            let typeLabel = '텍스트';
+                            let typeLabel = 'Text';
                             let bgColor = 'bg-blue-100';
                             let textColor = 'text-blue-800';
                             
                             if (item.summary_type === 'youtube') {
                                 icon = 'fab fa-youtube';
-                                typeLabel = '유튜브';
+                                typeLabel = 'YouTube';
                                 bgColor = 'bg-red-100';
                                 textColor = 'text-red-800';
                             } else if (item.summary_type === 'document') {
                                 icon = 'fas fa-file-pdf';
-                                typeLabel = '문서';
+                                typeLabel = 'Document';
                                 bgColor = 'bg-green-100';
                                 textColor = 'text-green-800';
                             }
@@ -655,12 +672,12 @@
                             `;
                         });
                     } else {
-                        historyItems.innerHTML = '<p class="text-xs text-gray-400 text-center p-4">히스토리가 없습니다.</p>';
+                        historyItems.innerHTML = '<p class="text-xs text-gray-400 text-center p-4">No history found.</p>';
                     }
                 })
                 .catch(error => {
-                    console.error('히스토리 로딩 오류:', error);
-                    historyItems.innerHTML = '<p class="text-xs text-red-400 text-center p-4">히스토리를 불러오는 중 오류가 발생했습니다.</p>';
+                    console.error('Error loading history:', error);
+                    historyItems.innerHTML = '<p class="text-xs text-red-400 text-center p-4">An error occurred while loading history.</p>';
                 });
         }
 
@@ -681,7 +698,7 @@
                             const result = `
                                 <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                                     <h4 class="font-medium text-blue-800 mb-2">
-                                        <i class="fas fa-file-alt mr-1"></i> 텍스트 요약
+                                        <i class="fas fa-file-alt mr-1"></i> Text Summary
                                     </h4>
                                     <div class="mb-4">
                                         <p class="text-gray-700">${item.original_text}</p>
@@ -693,15 +710,15 @@
                             `;
                             individualResults.innerHTML = result;
                         } else if (item.summary_type === 'youtube') {
-                            const metadata = item.metadata || {};
+                            const sourceInfo = item.source_info || {};
                             const result = `
                                 <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                                     <h4 class="font-medium text-red-800 mb-2">
-                                        <i class="fab fa-youtube mr-1"></i> 유튜브 요약
+                                        <i class="fab fa-youtube mr-1"></i> YouTube Summary
                                     </h4>
                                     <div class="mb-2">
-                                        <strong>${metadata.video_title || '제목 정보 없음'}</strong>
-                                        <span class="text-sm text-gray-600 ml-2">(${metadata.channel_name || '채널 정보 없음'})</span>
+                                        <strong>${sourceInfo.video_title || 'No title available'}</strong>
+                                        <span class="text-sm text-gray-600 ml-2">(${sourceInfo.channel_name || 'No channel info'})</span>
                                     </div>
                                     <div class="summary-container mb-2">
                                         <p>${item.summary_text}</p>
@@ -710,15 +727,15 @@
                             `;
                             individualResults.innerHTML = result;
                         } else if (item.summary_type === 'document') {
-                            const metadata = item.metadata || {};
+                            const sourceInfo = item.source_info || {};
                             const result = `
                                 <div class="mb-6 p-4 bg-gray-50 rounded-lg">
                                     <h4 class="font-medium text-green-800 mb-2">
-                                        <i class="fas fa-file-alt mr-1"></i> 문서 요약
+                                        <i class="fas fa-file-alt mr-1"></i> Document Summary
                                     </h4>
                                     <div class="mb-2">
-                                        <strong>${metadata.file_name || '파일명 정보 없음'}</strong>
-                                        <span class="text-sm text-gray-600 ml-2">(${metadata.file_type || '파일 타입 정보 없음'})</span>
+                                        <strong>${sourceInfo.file_name || 'No file name'}</strong>
+                                        <span class="text-sm text-gray-600 ml-2">(${sourceInfo.file_type || 'No file type'})</span>
                                     </div>
                                     <div class="summary-container mb-2">
                                         <p>${item.summary_text}</p>
@@ -733,9 +750,18 @@
                     }
                 })
                 .catch(error => {
-                    console.error('히스토리 상세 정보 불러오기 오류:', error);
-                    alert('히스토리 정보를 불러오는 중 오류가 발생했습니다.');
+                    console.error('Error fetching history detail:', error);
+                    alert('An error occurred while fetching history details.');
                 });
+        }
+
+        // Get max length value
+        function getMaxLength() {
+            if (maxLengthSelect.value === 'custom') {
+                return parseInt(customLength.value);
+            } else {
+                return parseInt(maxLengthSelect.value);
+            }
         }
     </script>
 </body>
