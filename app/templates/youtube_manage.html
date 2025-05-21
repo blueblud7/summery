@@ -25,7 +25,7 @@
             <a href="/history" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
                 <i class="fas fa-history mr-2"></i>히스토리
             </a>
-            <a href="#" id="report-tab" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
+            <a href="/report" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
                 <i class="fas fa-chart-bar mr-2"></i>리포트
             </a>
         </div>
@@ -37,6 +37,7 @@
     <div class="tabs">
         <div class="tab active" onclick="switchTab('channels')">채널 관리</div>
         <div class="tab" onclick="switchTab('keywords')">키워드 관리</div>
+        <div class="tab" onclick="switchTab('reports')">리포트</div>
     </div>
     
     <div id="channels" class="tab-content active">
@@ -76,6 +77,31 @@
             <div id="keywordList">
                 <!-- 키워드 목록이 여기에 동적으로 추가됩니다 -->
                 <div class="loading">키워드 목록을 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="reports" class="tab-content">
+        <h2>리포트</h2>
+        <p>등록한 채널 및 키워드의 최신 영상에 대한 일일 리포트를 확인할 수 있습니다.</p>
+        
+        <div class="report-filter">
+            <label for="report-type">리포트 유형:</label>
+            <select id="report-type" onchange="loadReports()">
+                <option value="all">전체</option>
+                <option value="channel">채널</option>
+                <option value="keyword">키워드</option>
+            </select>
+            
+            <label for="report-date">날짜:</label>
+            <input type="date" id="report-date" onchange="loadReports()">
+        </div>
+        
+        <div class="list-container">
+            <h3 class="list-title">리포트 목록</h3>
+            <div id="reportHistory">
+                <!-- 리포트 목록이 여기에 동적으로 추가됩니다 -->
+                <div class="loading">리포트 목록을 불러오는 중...</div>
             </div>
         </div>
     </div>
@@ -121,18 +147,23 @@
         
         // 선택한 탭 버튼 활성화
         document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+        
+        // 탭 전환 시 해당 데이터 로드
+        if (tabId === 'channels') {
+            loadChannels();
+        } else if (tabId === 'keywords') {
+            loadKeywords();
+        } else if (tabId === 'reports') {
+            loadReports();
+        }
     }
     
     // DOM이 로드된 후 실행
     document.addEventListener('DOMContentLoaded', function() {
-        // 리포트 탭 요소가 존재하면 이벤트 리스너 추가
-        const reportTab = document.getElementById('report-tab');
-        if (reportTab) {
-            reportTab.addEventListener('click', function(e) {
-                e.preventDefault();
-                alert('리포트 기능은 현재 개발 중입니다.');
-            });
-        }
+        // 오늘 날짜를 리포트 날짜 기본값으로 설정
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+        document.getElementById('report-date').value = formattedDate;
     });
 </script>
 

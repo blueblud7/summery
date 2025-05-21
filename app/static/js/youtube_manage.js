@@ -451,6 +451,151 @@ function showMessage(message, type = 'info') {
     }, 5000);
 }
 
+// 리포트 로드 함수
+async function loadReports() {
+    try {
+        const reportType = document.getElementById('report-type').value;
+        const reportDate = document.getElementById('report-date').value;
+        
+        // 리포트 타입과 날짜 기반으로 API 호출
+        const response = await fetch(`/api/v1/history?type=${reportType}&date=${reportDate}`);
+        
+        if (!response.ok) {
+            throw new Error('리포트를 불러오는 데 실패했습니다.');
+        }
+        
+        const reports = await response.json();
+        const reportHistory = document.getElementById('reportHistory');
+        reportHistory.innerHTML = '';
+        
+        if (reports.length === 0) {
+            reportHistory.innerHTML = '<p class="no-results">해당 조건의 리포트가 없습니다.</p>';
+            return;
+        }
+        
+        reports.forEach(report => {
+            const reportItem = document.createElement('div');
+            reportItem.className = 'history-item';
+            
+            // 요약 내용 형식화
+            const summary = report.summary.length > 150 ? report.summary.substring(0, 150) + '...' : report.summary;
+            
+            // 요약 생성 날짜/시간 형식화
+            const createdAt = new Date(report.created_at);
+            const formattedDate = `${createdAt.getFullYear()}-${(createdAt.getMonth() + 1).toString().padStart(2, '0')}-${createdAt.getDate().toString().padStart(2, '0')} ${createdAt.getHours().toString().padStart(2, '0')}:${createdAt.getMinutes().toString().padStart(2, '0')}`;
+            
+            // 요약 소스에 따라 다른 아이콘 표시
+            let sourceIcon = '';
+            if (report.source_type === 'youtube') {
+                sourceIcon = '<i class="fab fa-youtube"></i>';
+            } else if (report.source_type === 'text') {
+                sourceIcon = '<i class="fas fa-file-alt"></i>';
+            } else if (report.source_type === 'url') {
+                sourceIcon = '<i class="fas fa-globe"></i>';
+            } else if (report.source_type === 'pdf') {
+                sourceIcon = '<i class="fas fa-file-pdf"></i>';
+            }
+            
+            reportItem.innerHTML = `
+                <div class="history-header">
+                    <h3>${report.title || '제목 없음'}</h3>
+                    <span class="source-type">${sourceIcon} ${report.source_type}</span>
+                </div>
+                <p class="history-summary">${summary}</p>
+                <div class="history-meta">
+                    <span class="history-date"><i class="fas fa-calendar-alt"></i> ${formattedDate}</span>
+                    <span class="history-language">${report.language === 'ko' ? '한국어' : report.language === 'en' ? '영어' : report.language}</span>
+                </div>
+                <div class="history-actions">
+                    <button onclick="viewHistoryDetail(${report.id})">자세히 보기</button>
+                    <button onclick="window.open('${report.url}', '_blank')" ${report.url ? '' : 'disabled'}>원본 보기</button>
+                </div>
+            `;
+            
+            reportHistory.appendChild(reportItem);
+        });
+    } catch (error) {
+        console.error('리포트 목록 로드 중 오류:', error);
+        showMessage('리포트 목록을 불러오는 데 실패했습니다.', 'error');
+        document.getElementById('reportHistory').innerHTML = '<p class="error">리포트를 불러오는 중 오류가 발생했습니다.</p>';
+    }
+}
+
+// 히스토리 상세보기 함수
+async function viewHistoryDetail(historyId) {
+    try {
+        const response = await fetch(`/api/v1/history/${historyId}`);
+        
+        if (!response.ok) {
+            throw new Error('히스토리 데이터를 불러오는 데 실패했습니다.');
+        }
+        
+        const data = await response.json();
+        
+        // 요약 결과 표시
+        const summaryContainer = document.getElementById('summaryResult');
+        summaryContainer.style.display = 'block';
+        
+        let metadataHtml = '';
+        if (data.source_metadata) {
+            try {
+                const metadata = typeof data.source_metadata === 'string' 
+                    ? JSON.parse(data.source_metadata) 
+                    : data.source_metadata;
+                    
+                if (metadata.channel) {
+                    metadataHtml += `<p><strong>채널:</strong> ${metadata.channel}</p>`;
+                }
+                if (metadata.length) {
+                    metadataHtml += `<p><strong>길이:</strong> ${metadata.length}</p>`;
+                }
+                if (metadata.views) {
+                    metadataHtml += `<p><strong>조회수:</strong> ${metadata.views}</p>`;
+                }
+                if (metadata.upload_date) {
+                    metadataHtml += `<p><strong>업로드 날짜:</strong> ${metadata.upload_date}</p>`;
+                }
+            } catch (e) {
+                console.error('메타데이터 파싱 오류:', e);
+            }
+        }
+        
+        // 히스토리 유형에 따라 다른 템플릿 표시
+        if (data.source_type === 'youtube') {
+            summaryContainer.innerHTML = `
+                <h2>${data.title || '제목 없음'}</h2>
+                ${metadataHtml}
+                <div class="summary-content">
+                    <h3>요약</h3>
+                    <div>${data.summary.replace(/\n/g, '<br>')}</div>
+                </div>
+                <div class="actions">
+                    <button onclick="window.open('${data.url}', '_blank')" ${data.url ? '' : 'disabled'}>원본 보기</button>
+                    <button onclick="document.getElementById('summaryResult').style.display = 'none'">닫기</button>
+                </div>
+            `;
+        } else {
+            summaryContainer.innerHTML = `
+                <h2>${data.title || '제목 없음'}</h2>
+                <div class="summary-content">
+                    <h3>요약</h3>
+                    <div>${data.summary.replace(/\n/g, '<br>')}</div>
+                </div>
+                <div class="actions">
+                    <button onclick="window.open('${data.url}', '_blank')" ${data.url ? '' : 'disabled'}>원본 보기</button>
+                    <button onclick="document.getElementById('summaryResult').style.display = 'none'">닫기</button>
+                </div>
+            `;
+        }
+        
+        // 요약 결과로 스크롤
+        summaryContainer.scrollIntoView({ behavior: 'smooth' });
+    } catch (error) {
+        console.error('히스토리 상세 정보 로드 중 오류:', error);
+        showMessage(error.message || '히스토리 정보를 불러오는 데 실패했습니다.', 'error');
+    }
+}
+
 // 초기화 함수
 document.addEventListener('DOMContentLoaded', function() {
     // URL 쿼리 파라미터에 따라 적절한 탭 표시
@@ -463,8 +608,8 @@ document.addEventListener('DOMContentLoaded', function() {
     } else if (tab === 'keywords') {
         switchTab('keywords');
         loadKeywords();
-    } else if (tab === 'search') {
-        // 검색 관련 초기화 코드 (필요한 경우)
+    } else if (tab === 'reports') {
+        switchTab('reports');
     } else {
         // 기본 탭 (manage 페이지, 쿼리 파라미터 없을 때)
         loadChannels();

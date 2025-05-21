@@ -169,6 +169,15 @@ async def search_page(request: Request):
     logger.debug("Search page called")
     return templates.TemplateResponse("youtube_manage.html", {"request": request})
 
+# 리포트 페이지
+@app.get("/report", response_class=HTMLResponse)
+async def report_page(request: Request):
+    """
+    리포트 페이지를 반환합니다.
+    """
+    logger.info("Report page called")
+    return templates.TemplateResponse("youtube_manage.html", {"request": request, "tab": "reports"})
+
 # 메인 시작점
 logger.info("Starting application...")
 logger.debug(f"Settings: {settings.PROJECT_NAME}, {settings.VERSION}") 
