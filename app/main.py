@@ -123,7 +123,11 @@ async def youtube_manage_page(request: Request):
     Returns the YouTube management page.
     """
     logger.info("YouTube manage page called")
-    return templates.TemplateResponse("youtube_manage.html", {"request": request})
+    is_ajax = request.query_params.get("ajax", "false") == "true"
+    return templates.TemplateResponse(
+        "youtube_manage.html", 
+        {"request": request, "is_ajax": is_ajax}
+    )
 
 # 히스토리 페이지
 @app.get("/history", response_class=HTMLResponse)
@@ -132,7 +136,11 @@ async def history_page(request: Request):
     요약 히스토리 페이지를 반환합니다.
     """
     logger.info("History page called")
-    return templates.TemplateResponse("history.html", {"request": request})
+    is_ajax = request.query_params.get("ajax", "false") == "true"
+    return templates.TemplateResponse(
+        "history.html", 
+        {"request": request, "is_ajax": is_ajax}
+    )
 
 # 채널 페이지
 @app.get("/channels", response_class=HTMLResponse)

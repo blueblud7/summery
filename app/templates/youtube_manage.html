@@ -12,6 +12,7 @@
         <h1>유튜브 채널 및 키워드 관리</h1>
     </div>
     
+    {% if not is_ajax %}
     <!-- 네비게이션 탭 -->
     <div class="navigation-tabs mb-6">
         <div class="flex border-b border-gray-200">
@@ -19,13 +20,17 @@
                 <i class="fas fa-home mr-2"></i>홈
             </a>
             <a href="/manage" class="px-6 py-3 text-center border-b-2 border-indigo-500 font-medium text-indigo-600">
-                <i class="fas fa-cog mr-2"></i>관리
+                <i class="fas fa-cog mr-2"></i>채널/키워드
             </a>
             <a href="/history" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
                 <i class="fas fa-history mr-2"></i>히스토리
             </a>
+            <a href="#" id="report-tab" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
+                <i class="fas fa-chart-bar mr-2"></i>리포트
+            </a>
         </div>
     </div>
+    {% endif %}
     
     <div id="message" class="message"></div>
     
@@ -117,6 +122,21 @@
         // 선택한 탭 버튼 활성화
         document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
     }
+    
+    // DOM이 로드된 후 실행
+    document.addEventListener('DOMContentLoaded', function() {
+        // 리포트 탭 요소가 존재하면 이벤트 리스너 추가
+        const reportTab = document.getElementById('report-tab');
+        if (reportTab) {
+            reportTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('리포트 기능은 현재 개발 중입니다.');
+            });
+        }
+    });
 </script>
+
+{% if not is_ajax %}
 <script src="{{ url_for('static', path='/js/youtube_manage.js') }}"></script>
+{% endif %}
 {% endblock %} 

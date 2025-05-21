@@ -21,6 +21,42 @@
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
         }
+        /* 사이드바 스타일 */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #1a202c;
+            color: white;
+            transition: transform 0.3s ease;
+            z-index: 50;
+        }
+        .sidebar-toggle {
+            display: none;
+        }
+        .main-content {
+            margin-left: 250px;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .sidebar-toggle {
+                display: block;
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 51;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
     </style>
     {% block head %}{% endblock %}
 </head>
@@ -54,5 +90,57 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     {% block scripts %}{% endblock %}
+
+    <!-- 공통 스크립트 -->
+    <script>
+        // AJAX 콘텐츠 로드 헬퍼 함수
+        function loadContentViaAjax(url, targetElem, callback) {
+            fetch(url + '?ajax=true')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('네트워크 오류: ' + response.status);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    // DOM 파서를 사용하여 HTML 추출
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    
+                    // 필요한 콘텐츠만 추출
+                    const content = doc.querySelector('.container');
+                    
+                    if (content) {
+                        // 메인 콘텐츠 업데이트
+                        targetElem.innerHTML = '';
+                        targetElem.appendChild(content.cloneNode(true));
+                        
+                        // 콜백 함수 실행
+                        if (typeof callback === 'function') {
+                            callback(content);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('콘텐츠 로드 오류:', error);
+                    targetElem.innerHTML = `
+                        <div class="text-center py-8 text-red-500">
+                            <i class="fas fa-exclamation-circle text-3xl mb-2"></i>
+                            <p>페이지를 불러오는 중 오류가 발생했습니다.</p>
+                            <p class="text-sm mt-2">${error.message}</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        // 히스토리 API를 사용한 페이지 네비게이션
+        function navigateTo(url, mainContentElem, callback) {
+            // 상태 변경 없이 URL만 변경
+            window.history.pushState({}, '', url);
+            
+            // 콘텐츠 로드
+            loadContentViaAjax(url, mainContentElem, callback);
+        }
+    </script>
 </body>
 </html> 

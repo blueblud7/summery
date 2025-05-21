@@ -81,42 +81,66 @@
         
         <!-- 사이드바 탭 -->
         <div class="border-b border-gray-800">
-            <div class="flex">
-                <button id="tab-summary" class="flex-1 px-4 py-2 text-center bg-blue-600 text-white">
-                    <i class="fas fa-file-alt mr-2"></i>Summary
+            <div class="flex flex-col">
+                <button id="tab-summary" class="px-4 py-2 text-left bg-blue-600 text-white hover:bg-blue-700">
+                    <i class="fas fa-file-alt mr-2"></i>요약
                 </button>
-                <button id="tab-history" class="flex-1 px-4 py-2 text-center hover:bg-gray-700">
-                    <i class="fas fa-history mr-2"></i>History
+                <button id="tab-manage" class="px-4 py-2 text-left hover:bg-gray-700">
+                    <i class="fas fa-cog mr-2"></i>채널/키워드
+                </button>
+                <div id="manage-subtabs" class="pl-4 hidden">
+                    <button id="tab-channels" class="w-full px-4 py-2 text-left hover:bg-gray-700">
+                        <i class="fab fa-youtube mr-2"></i>채널
+                    </button>
+                    <button id="tab-keywords" class="w-full px-4 py-2 text-left hover:bg-gray-700">
+                        <i class="fas fa-search mr-2"></i>키워드
+                    </button>
+                    <button id="tab-reports" class="w-full px-4 py-2 text-left hover:bg-gray-700">
+                        <i class="fas fa-chart-bar mr-2"></i>리포트
+                    </button>
+                </div>
+                <button id="tab-history" class="px-4 py-2 text-left hover:bg-gray-700">
+                    <i class="fas fa-history mr-2"></i>히스토리
                 </button>
             </div>
         </div>
         
         <!-- 요약 탭 콘텐츠 -->
         <div id="summary-tab-content" class="p-4">
-            <p class="text-sm mb-4">Quickly summarize various types of content.</p>
+            <p class="text-sm mb-4">다양한 유형의 콘텐츠를 빠르게 요약하세요.</p>
             <div class="space-y-3">
                 <button id="side-add-text" class="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-left">
-                    <i class="fas fa-font mr-2"></i>Text Summary
+                    <i class="fas fa-font mr-2"></i>텍스트 요약
                 </button>
                 <button id="side-add-youtube" class="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-left">
-                    <i class="fab fa-youtube mr-2"></i>YouTube Summary
+                    <i class="fab fa-youtube mr-2"></i>유튜브 요약
                 </button>
                 <button id="side-add-document" class="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-left">
-                    <i class="fas fa-file-alt mr-2"></i>Document Summary
+                    <i class="fas fa-file-alt mr-2"></i>문서 요약
                 </button>
+            </div>
+        </div>
+        
+        <!-- 채널/키워드 탭 콘텐츠 -->
+        <div id="manage-tab-content" class="p-4 hidden">
+            <p class="text-sm mb-4">채널과 키워드를 관리하고 리포트를 확인하세요.</p>
+            <div class="space-y-3">
+                <a href="/manage" class="block w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-left">
+                    <i class="fas fa-cog mr-2"></i>관리 페이지로 이동
+                </a>
             </div>
         </div>
         
         <!-- 히스토리 탭 콘텐츠 -->
         <div id="history-tab-content" class="p-4 hidden">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-sm font-medium">Recent Summaries</h3>
+                <h3 class="text-sm font-medium">최근 요약</h3>
                 <button id="refresh-history" class="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded">
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
             <div id="history-items" class="space-y-2">
-                <p class="text-xs text-gray-400 text-center p-4">Loading...</p>
+                <p class="text-xs text-gray-400 text-center p-4">로딩 중...</p>
             </div>
         </div>
         
@@ -142,20 +166,20 @@
             <!-- 네비게이션 탭 -->
             <div class="max-w-5xl mx-auto mb-6">
                 <div class="flex border-b border-gray-200">
-                    <a href="/" class="px-6 py-3 text-center border-b-2 border-indigo-500 font-medium text-indigo-600">
+                    <a href="javascript:void(0);" class="tab-link px-6 py-3 text-center border-b-2 border-indigo-500 font-medium text-indigo-600" data-target="/">
                         <i class="fas fa-home mr-2"></i>홈
                     </a>
-                    <a href="/manage" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
+                    <a href="javascript:void(0);" class="tab-link px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium" data-target="/manage">
                         <i class="fas fa-cog mr-2"></i>관리
                     </a>
-                    <a href="/history" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
+                    <a href="javascript:void(0);" class="tab-link px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium" data-target="/history">
                         <i class="fas fa-history mr-2"></i>히스토리
                     </a>
                 </div>
             </div>
 
             <!-- 통합 요약 인터페이스 -->
-            <div class="max-w-5xl mx-auto bg-white rounded-lg shadow-md p-6">
+            <div class="max-w-5xl mx-auto bg-white rounded-lg shadow-md p-6 original-content">
                 <h2 class="text-2xl font-semibold mb-4">Multi-Item Summary</h2>
                 <p class="text-gray-700 mb-4">Add multiple texts, YouTube links, and document files to summarize all at once.</p>
                 
@@ -271,6 +295,7 @@
         const maxLengthSelect = document.getElementById('max-length-select');
         const customLength = document.getElementById('custom-length');
         const authContainer = document.getElementById('auth-container');
+        const mainContentArea = document.querySelector('.container.mx-auto.px-4.py-8');
         
         // 초기화 및 이벤트 리스너
         document.addEventListener('DOMContentLoaded', function() {
@@ -296,6 +321,12 @@
             
             // 첫 로드 시 안내 메시지 표시
             updateItemsContainer();
+            
+            // 사이드바 탭 전환 이벤트 리스너 설정
+            setupSidebarTabs();
+            
+            // 네비게이션 탭 클릭 이벤트 설정
+            setupNavigationTabs();
         });
         
         // 아이템 ID 카운터
@@ -626,28 +657,121 @@
             document.getElementById('sidebar').classList.toggle('active');
         });
 
-        // 탭 전환 기능
-        document.getElementById('tab-summary').addEventListener('click', function() {
-            document.getElementById('tab-summary').classList.add('bg-blue-600');
-            document.getElementById('tab-summary').classList.remove('hover:bg-gray-700');
-            document.getElementById('tab-history').classList.remove('bg-blue-600');
-            document.getElementById('tab-history').classList.add('hover:bg-gray-700');
+        // 사이드바 탭 설정 함수
+        function setupSidebarTabs() {
+            // 탭 버튼 요소
+            const tabSummary = document.getElementById('tab-summary');
+            const tabManage = document.getElementById('tab-manage');
+            const tabHistory = document.getElementById('tab-history');
+            const manageSubtabs = document.getElementById('manage-subtabs');
             
-            document.getElementById('summary-tab-content').classList.remove('hidden');
-            document.getElementById('history-tab-content').classList.add('hidden');
-        });
-
-        document.getElementById('tab-history').addEventListener('click', function() {
-            document.getElementById('tab-history').classList.add('bg-blue-600');
-            document.getElementById('tab-history').classList.remove('hover:bg-gray-700');
-            document.getElementById('tab-summary').classList.remove('bg-blue-600');
-            document.getElementById('tab-summary').classList.add('hover:bg-gray-700');
+            // 탭 콘텐츠 요소
+            const summaryContent = document.getElementById('summary-tab-content');
+            const manageContent = document.getElementById('manage-tab-content');
+            const historyContent = document.getElementById('history-tab-content');
             
-            document.getElementById('history-tab-content').classList.remove('hidden');
-            document.getElementById('summary-tab-content').classList.add('hidden');
+            // 메인 콘텐츠 영역
+            const mainContentArea = document.querySelector('.container.mx-auto.px-4.py-8');
             
-            loadHistory();
-        });
+            // 원본 메인 콘텐츠를 저장
+            const originalMainContent = mainContentArea.innerHTML;
+            
+            // 모든 탭 비활성화 함수
+            function deactivateAllTabs() {
+                [tabSummary, tabManage, tabHistory].forEach(tab => {
+                    tab.classList.remove('bg-blue-600');
+                    tab.classList.add('hover:bg-gray-700');
+                });
+                
+                [summaryContent, manageContent, historyContent].forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                manageSubtabs.classList.add('hidden');
+            }
+            
+            // 요약 탭
+            tabSummary.addEventListener('click', function() {
+                deactivateAllTabs();
+                tabSummary.classList.add('bg-blue-600');
+                tabSummary.classList.remove('hover:bg-gray-700');
+                summaryContent.classList.remove('hidden');
+                
+                // 메인 콘텐츠 영역 복원
+                const summaryTab = document.querySelector('.tab-link[data-target="/"]');
+                if (summaryTab) {
+                    summaryTab.click();
+                } else {
+                    mainContentArea.innerHTML = originalMainContent;
+                    
+                    // 필요한 이벤트 리스너 다시 설정
+                    const addTextBtn = document.getElementById('add-text-btn');
+                    const addYoutubeBtn = document.getElementById('add-youtube-btn');
+                    const addDocumentBtn = document.getElementById('add-document-btn');
+                    const summarizeBtn = document.getElementById('summarize-btn');
+                    const maxLengthSelect = document.getElementById('max-length-select');
+                    const customLength = document.getElementById('custom-length');
+                    
+                    if (addTextBtn) addTextBtn.addEventListener('click', addTextItem);
+                    if (addYoutubeBtn) addYoutubeBtn.addEventListener('click', addYoutubeItem);
+                    if (addDocumentBtn) addDocumentBtn.addEventListener('click', addDocumentItem);
+                    if (summarizeBtn) summarizeBtn.addEventListener('click', summarizeAll);
+                    
+                    if (maxLengthSelect) {
+                        maxLengthSelect.addEventListener('change', function() {
+                            if (this.value === 'custom') {
+                                customLength.classList.remove('hidden');
+                            } else {
+                                customLength.classList.add('hidden');
+                            }
+                        });
+                    }
+                    
+                    updateItemsContainer();
+                }
+            });
+            
+            // 채널/키워드 탭
+            tabManage.addEventListener('click', function() {
+                deactivateAllTabs();
+                tabManage.classList.add('bg-blue-600');
+                tabManage.classList.remove('hover:bg-gray-700');
+                manageContent.classList.remove('hidden');
+                manageSubtabs.classList.remove('hidden');
+            });
+            
+            // 히스토리 탭
+            tabHistory.addEventListener('click', function() {
+                deactivateAllTabs();
+                tabHistory.classList.add('bg-blue-600');
+                tabHistory.classList.remove('hover:bg-gray-700');
+                historyContent.classList.remove('hidden');
+                loadHistory();
+                
+                // 히스토리 페이지 내용을 로드
+                loadHistoryPage();
+            });
+            
+            // 하위 탭 이벤트 리스너
+            document.getElementById('tab-channels').addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log("채널 탭 클릭됨");
+                // 메인 콘텐츠 영역에 관리 페이지 로드 
+                loadManagePage('channels');
+            });
+            
+            document.getElementById('tab-keywords').addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log("키워드 탭 클릭됨");
+                // 메인 콘텐츠 영역에 관리 페이지 로드
+                loadManagePage('keywords');
+            });
+            
+            document.getElementById('tab-reports').addEventListener('click', function(e) {
+                e.preventDefault();
+                alert('리포트 기능은 현재 개발 중입니다.');
+            });
+        }
 
         // 사이드바 버튼 이벤트
         document.getElementById('side-add-text').addEventListener('click', addTextItem);
@@ -865,6 +989,669 @@
                     </div>
                 `;
             }
+        }
+
+        // 네비게이션 탭 설정
+        function setupNavigationTabs() {
+            const tabLinks = document.querySelectorAll('.tab-link');
+            
+            tabLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // 활성 상태 초기화
+                    tabLinks.forEach(tab => {
+                        tab.classList.remove('border-b-2', 'border-indigo-500', 'text-indigo-600');
+                        tab.classList.add('text-gray-600', 'hover:text-gray-800');
+                    });
+                    
+                    // 클릭한 탭 활성화
+                    this.classList.add('border-b-2', 'border-indigo-500', 'text-indigo-600');
+                    this.classList.remove('text-gray-600', 'hover:text-gray-800');
+                    
+                    // 타겟 결정
+                    const target = this.getAttribute('data-target');
+                    
+                    if (target === '/') {
+                        // 홈으로 돌아가기
+                        const originalContent = mainContentArea.querySelector('.original-content');
+                        if (originalContent) {
+                            originalContent.style.display = 'block';
+                        } else {
+                            navigateTo('/', mainContentArea);
+                        }
+                    } else if (target === '/manage') {
+                        // 관리 페이지 로드
+                        loadManagePage('channels');
+                    } else if (target === '/history') {
+                        // 히스토리 페이지 로드
+                        loadHistoryPage();
+                    }
+                });
+            });
+        }
+
+        // 관리 페이지 콘텐츠 로드 함수
+        function loadManagePage(activeTab = 'channels') {
+            // 메인 컨텐츠 영역에 관리 템플릿 생성
+            mainContentArea.innerHTML = `
+                <div class="container">
+                    <div class="header">
+                        <h1>유튜브 채널 및 키워드 관리</h1>
+                    </div>
+                    
+                    <!-- 네비게이션 탭 -->
+                    <div class="navigation-tabs mb-6">
+                        <div class="flex border-b border-gray-200">
+                            <a href="javascript:void(0);" class="tab-link px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium" data-target="/">
+                                <i class="fas fa-home mr-2"></i>홈
+                            </a>
+                            <a href="javascript:void(0);" class="tab-link px-6 py-3 text-center border-b-2 border-indigo-500 font-medium text-indigo-600" data-target="/manage">
+                                <i class="fas fa-cog mr-2"></i>채널/키워드
+                            </a>
+                            <a href="javascript:void(0);" class="tab-link px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium" data-target="/history">
+                                <i class="fas fa-history mr-2"></i>히스토리
+                            </a>
+                            <a href="#" id="report-tab" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
+                                <i class="fas fa-chart-bar mr-2"></i>리포트
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div id="message" class="message"></div>
+                    
+                    <div class="tabs">
+                        <div class="tab" id="channels-tab" onclick="switchTab('channels')">채널 관리</div>
+                        <div class="tab" id="keywords-tab" onclick="switchTab('keywords')">키워드 관리</div>
+                    </div>
+                    
+                    <div id="channels" class="tab-content">
+                        <h2>채널 관리</h2>
+                        
+                        <form id="addChannelForm">
+                            <div class="form-group">
+                                <label for="channelId">채널 ID 또는 URL</label>
+                                <input type="text" id="channelId" placeholder="예: UCdUcjkyZtf-1WJyPPiETF1g, https://www.youtube.com/channel/UCdUcjkyZtf-1WJyPPiETF1g, https://www.youtube.com/@yunjadong, @yunjadong">
+                                <p class="form-hint">채널 ID, 전체 URL, 또는 @핸들(예: @yunjadong)을 입력할 수 있습니다.</p>
+                            </div>
+                            <button type="submit">채널 추가</button>
+                        </form>
+                        
+                        <div class="list-container">
+                            <h3 class="list-title">등록된 채널</h3>
+                            <div id="channelList">
+                                <!-- 채널 목록이 여기에 동적으로 추가됩니다 -->
+                                <div class="loading">채널 목록을 불러오는 중...</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="keywords" class="tab-content">
+                        <h2>키워드 관리</h2>
+                        
+                        <form id="addKeywordForm">
+                            <div class="form-group">
+                                <label for="keyword">키워드</label>
+                                <input type="text" id="keyword" placeholder="검색할 키워드 입력">
+                            </div>
+                            <button type="submit">키워드 추가</button>
+                        </form>
+                        
+                        <div class="list-container">
+                            <h3 class="list-title">등록된 키워드</h3>
+                            <div id="keywordList">
+                                <!-- 키워드 목록이 여기에 동적으로 추가됩니다 -->
+                                <div class="loading">키워드 목록을 불러오는 중...</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="video-results">
+                        <h2>검색 결과</h2>
+                        <div class="filter-controls" id="videoFilters" style="display: none;">
+                            <input type="text" id="videoSearchInput" class="search-input" placeholder="검색 결과 내 검색...">
+                            <select id="videoSortSelect">
+                                <option value="date_desc">최신순</option>
+                                <option value="date_asc">오래된순</option>
+                                <option value="views_desc">조회수 높은순</option>
+                                <option value="views_asc">조회수 낮은순</option>
+                                <option value="title_asc">제목 오름차순</option>
+                                <option value="title_desc">제목 내림차순</option>
+                            </select>
+                            <span id="resultCount"></span>
+                        </div>
+                        <div id="videoResults" class="video-grid">
+                            <!-- 비디오 검색 결과가 여기에 표시됩니다 -->
+                        </div>
+                    </div>
+                    
+                    <div id="summaryResult" class="summary-result" style="display: none;">
+                        <!-- 요약 결과가 여기에 표시됩니다 -->
+                    </div>
+                </div>
+            `;
+            
+            // 네비게이션 탭 이벤트 리스너 설정
+            setupNavigationTabs();
+            
+            // CSS 추가
+            const style = document.createElement('style');
+            style.textContent = `
+                .tabs {
+                    display: flex;
+                    margin-bottom: 20px;
+                }
+                
+                .tab {
+                    padding: 10px 20px;
+                    background-color: #f0f0f0;
+                    border: 1px solid #ddd;
+                    cursor: pointer;
+                    margin-right: 5px;
+                    border-radius: 4px 4px 0 0;
+                }
+                
+                .tab.active {
+                    background-color: #fff;
+                    border-bottom: 2px solid #4f46e5;
+                    font-weight: bold;
+                }
+                
+                .tab-content {
+                    display: none;
+                    padding: 20px;
+                    border: 1px solid #ddd;
+                    border-radius: 0 4px 4px 4px;
+                    margin-bottom: 20px;
+                }
+                
+                .tab-content.active {
+                    display: block;
+                }
+                
+                .form-group {
+                    margin-bottom: 15px;
+                }
+                
+                .form-group label {
+                    display: block;
+                    margin-bottom: 5px;
+                    font-weight: bold;
+                }
+                
+                .form-group input {
+                    width: 100%;
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                }
+                
+                .form-hint {
+                    font-size: 0.8em;
+                    color: #666;
+                    margin-top: 5px;
+                }
+                
+                .list-container {
+                    margin-top: 20px;
+                }
+                
+                .list-title {
+                    margin-bottom: 10px;
+                    font-size: 1.1em;
+                    font-weight: bold;
+                }
+                
+                .channel-item, .keyword-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px;
+                    border: 1px solid #ddd;
+                    margin-bottom: 5px;
+                    border-radius: 4px;
+                }
+                
+                .channel-info, .keyword-info {
+                    flex-grow: 1;
+                }
+                
+                .channel-title, .keyword-text {
+                    font-weight: bold;
+                }
+                
+                .channel-id, .keyword-date {
+                    font-size: 0.8em;
+                    color: #666;
+                }
+                
+                .action-btn {
+                    background-color: transparent;
+                    border: none;
+                    cursor: pointer;
+                    font-size: 1.2em;
+                    color: #666;
+                    transition: color 0.3s;
+                }
+                
+                .action-btn:hover {
+                    color: #f00;
+                }
+                
+                .loading {
+                    text-align: center;
+                    padding: 20px;
+                    color: #666;
+                }
+                
+                .message {
+                    padding: 10px;
+                    margin-bottom: 15px;
+                    border-radius: 4px;
+                    display: none;
+                }
+                
+                .message.success {
+                    background-color: #d1e7dd;
+                    color: #0f5132;
+                    display: block;
+                }
+                
+                .message.error {
+                    background-color: #f8d7da;
+                    color: #842029;
+                    display: block;
+                }
+                
+                .search-input {
+                    padding: 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    margin-right: 10px;
+                }
+                
+                button {
+                    padding: 8px 16px;
+                    background-color: #4f46e5;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                }
+                
+                button:hover {
+                    background-color: #4338ca;
+                }
+                
+                .video-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                    gap: 20px;
+                    margin-top: 20px;
+                }
+                
+                .video-card {
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    overflow: hidden;
+                }
+                
+                .video-thumbnail {
+                    width: 100%;
+                    height: auto;
+                }
+                
+                .video-info {
+                    padding: 10px;
+                }
+                
+                .video-title {
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                }
+                
+                .video-meta {
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 0.8em;
+                    color: #666;
+                }
+                
+                .filter-controls {
+                    display: flex;
+                    align-items: center;
+                    margin-top: 10px;
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // 탭 스위치 함수 정의
+            window.switchTab = function(tabId) {
+                console.log(`Switching to tab: ${tabId}`);
+                
+                // 모든 탭 컨텐츠 숨기기
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                // 모든 탭 버튼 비활성화
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                
+                // 선택한 탭 컨텐츠 표시
+                const tabContent = document.getElementById(tabId);
+                if (tabContent) {
+                    tabContent.classList.add('active');
+                }
+                
+                // 선택한 탭 버튼 활성화
+                const tabButton = document.getElementById(`${tabId}-tab`);
+                if (tabButton) {
+                    tabButton.classList.add('active');
+                }
+            };
+            
+            // 데이터 로드 함수
+            function loadChannels() {
+                const channelList = document.getElementById('channelList');
+                if (!channelList) return;
+                
+                channelList.innerHTML = '<div class="loading">채널 목록을 불러오는 중...</div>';
+                
+                fetch('/api/v1/youtube/channels/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data || data.length === 0) {
+                            channelList.innerHTML = '<div class="text-center py-4">등록된 채널이 없습니다.</div>';
+                            return;
+                        }
+                        
+                        channelList.innerHTML = '';
+                        data.forEach(channel => {
+                            const channelItem = document.createElement('div');
+                            channelItem.className = 'channel-item';
+                            channelItem.innerHTML = `
+                                <div class="channel-info">
+                                    <div class="channel-title">${channel.title}</div>
+                                    <div class="channel-id">${channel.channel_id}</div>
+                                </div>
+                                <button class="action-btn delete-channel" data-id="${channel.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                            channelList.appendChild(channelItem);
+                        });
+                        
+                        // 삭제 버튼 이벤트 리스너
+                        document.querySelectorAll('.delete-channel').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const channelId = this.getAttribute('data-id');
+                                if (confirm('이 채널을 삭제하시겠습니까?')) {
+                                    deleteChannel(channelId);
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('채널 로드 오류:', error);
+                        channelList.innerHTML = '<div class="text-center py-4 text-red-500">채널 목록을 불러오는 중 오류가 발생했습니다.</div>';
+                    });
+            }
+            
+            function loadKeywords() {
+                const keywordList = document.getElementById('keywordList');
+                if (!keywordList) return;
+                
+                keywordList.innerHTML = '<div class="loading">키워드 목록을 불러오는 중...</div>';
+                
+                fetch('/api/v1/youtube/keywords/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data || data.length === 0) {
+                            keywordList.innerHTML = '<div class="text-center py-4">등록된 키워드가 없습니다.</div>';
+                            return;
+                        }
+                        
+                        keywordList.innerHTML = '';
+                        data.forEach(keyword => {
+                            const keywordItem = document.createElement('div');
+                            keywordItem.className = 'keyword-item';
+                            keywordItem.innerHTML = `
+                                <div class="keyword-info">
+                                    <div class="keyword-text">${keyword.keyword}</div>
+                                    <div class="keyword-date">추가일: ${new Date(keyword.created_at).toLocaleDateString()}</div>
+                                </div>
+                                <button class="action-btn delete-keyword" data-id="${keyword.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                            keywordList.appendChild(keywordItem);
+                        });
+                        
+                        // 삭제 버튼 이벤트 리스너
+                        document.querySelectorAll('.delete-keyword').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const keywordId = this.getAttribute('data-id');
+                                if (confirm('이 키워드를 삭제하시겠습니까?')) {
+                                    deleteKeyword(keywordId);
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('키워드 로드 오류:', error);
+                        keywordList.innerHTML = '<div class="text-center py-4 text-red-500">키워드 목록을 불러오는 중 오류가 발생했습니다.</div>';
+                    });
+            }
+            
+            // 삭제 함수
+            function deleteChannel(id) {
+                fetch(`/api/v1/youtube/channels/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // 성공 메시지 표시
+                        const messageDiv = document.getElementById('message');
+                        messageDiv.textContent = '채널이 삭제되었습니다.';
+                        messageDiv.className = 'message success';
+                        
+                        // 목록 새로고침
+                        loadChannels();
+                        
+                        // 메시지 자동 사라짐
+                        setTimeout(() => {
+                            messageDiv.className = 'message';
+                        }, 3000);
+                    } else {
+                        throw new Error('채널 삭제 실패');
+                    }
+                })
+                .catch(error => {
+                    // 오류 메시지 표시
+                    const messageDiv = document.getElementById('message');
+                    messageDiv.textContent = '채널 삭제 중 오류가 발생했습니다.';
+                    messageDiv.className = 'message error';
+                    
+                    // 메시지 자동 사라짐
+                    setTimeout(() => {
+                        messageDiv.className = 'message';
+                    }, 3000);
+                });
+            }
+            
+            function deleteKeyword(id) {
+                fetch(`/api/v1/youtube/keywords/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // 성공 메시지 표시
+                        const messageDiv = document.getElementById('message');
+                        messageDiv.textContent = '키워드가 삭제되었습니다.';
+                        messageDiv.className = 'message success';
+                        
+                        // 목록 새로고침
+                        loadKeywords();
+                        
+                        // 메시지 자동 사라짐
+                        setTimeout(() => {
+                            messageDiv.className = 'message';
+                        }, 3000);
+                    } else {
+                        throw new Error('키워드 삭제 실패');
+                    }
+                })
+                .catch(error => {
+                    // 오류 메시지 표시
+                    const messageDiv = document.getElementById('message');
+                    messageDiv.textContent = '키워드 삭제 중 오류가 발생했습니다.';
+                    messageDiv.className = 'message error';
+                    
+                    // 메시지 자동 사라짐
+                    setTimeout(() => {
+                        messageDiv.className = 'message';
+                    }, 3000);
+                });
+            }
+            
+            // 폼 제출 이벤트 리스너
+            const addChannelForm = document.getElementById('addChannelForm');
+            if (addChannelForm) {
+                addChannelForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const channelInput = document.getElementById('channelId');
+                    const channelValue = channelInput.value.trim();
+                    
+                    if (!channelValue) {
+                        alert('채널 ID 또는 URL을 입력해주세요.');
+                        return;
+                    }
+                    
+                    // 채널 추가 API 호출
+                    fetch('/api/v1/youtube/channels/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            channel_id: channelValue
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('채널 추가 실패');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // 입력 필드 초기화
+                        channelInput.value = '';
+                        
+                        // 성공 메시지 표시
+                        const messageDiv = document.getElementById('message');
+                        messageDiv.textContent = '채널이 추가되었습니다.';
+                        messageDiv.className = 'message success';
+                        
+                        // 목록 새로고침
+                        loadChannels();
+                        
+                        // 메시지 자동 사라짐
+                        setTimeout(() => {
+                            messageDiv.className = 'message';
+                        }, 3000);
+                    })
+                    .catch(error => {
+                        // 오류 메시지 표시
+                        const messageDiv = document.getElementById('message');
+                        messageDiv.textContent = '채널 추가 중 오류가 발생했습니다.';
+                        messageDiv.className = 'message error';
+                        
+                        // 메시지 자동 사라짐
+                        setTimeout(() => {
+                            messageDiv.className = 'message';
+                        }, 3000);
+                    });
+                });
+            }
+            
+            const addKeywordForm = document.getElementById('addKeywordForm');
+            if (addKeywordForm) {
+                addKeywordForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const keywordInput = document.getElementById('keyword');
+                    const keywordValue = keywordInput.value.trim();
+                    
+                    if (!keywordValue) {
+                        alert('키워드를 입력해주세요.');
+                        return;
+                    }
+                    
+                    // 키워드 추가 API 호출
+                    fetch('/api/v1/youtube/keywords/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            keyword: keywordValue
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('키워드 추가 실패');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // 입력 필드 초기화
+                        keywordInput.value = '';
+                        
+                        // 성공 메시지 표시
+                        const messageDiv = document.getElementById('message');
+                        messageDiv.textContent = '키워드가 추가되었습니다.';
+                        messageDiv.className = 'message success';
+                        
+                        // 목록 새로고침
+                        loadKeywords();
+                        
+                        // 메시지 자동 사라짐
+                        setTimeout(() => {
+                            messageDiv.className = 'message';
+                        }, 3000);
+                    })
+                    .catch(error => {
+                        // 오류 메시지 표시
+                        const messageDiv = document.getElementById('message');
+                        messageDiv.textContent = '키워드 추가 중 오류가 발생했습니다.';
+                        messageDiv.className = 'message error';
+                        
+                        // 메시지 자동 사라짐
+                        setTimeout(() => {
+                            messageDiv.className = 'message';
+                        }, 3000);
+                    });
+                });
+            }
+            
+            // 리포트 탭 클릭 이벤트
+            const reportTab = document.getElementById('report-tab');
+            if (reportTab) {
+                reportTab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    alert('리포트 기능은 현재 개발 중입니다.');
+                });
+            }
+            
+            // 초기 탭 설정
+            switchTab(activeTab);
+            
+            // 채널 및 키워드 목록 로드
+            loadChannels();
+            loadKeywords();
         }
     </script>
 </body>

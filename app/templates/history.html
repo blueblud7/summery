@@ -1,1 +1,417 @@
- 
+{% extends "base.html" %}
+
+{% block title %}요약 히스토리{% endblock %}
+
+{% block head %}
+<style>
+    .history-item {
+        border-left: 4px solid #4f46e5;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background-color: #f9fafb;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s;
+    }
+    
+    .history-item:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .type-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+    }
+    
+    .type-text {
+        background-color: #e0f2fe;
+        color: #0369a1;
+    }
+    
+    .type-youtube {
+        background-color: #fee2e2;
+        color: #b91c1c;
+    }
+    
+    .type-document {
+        background-color: #d1fae5;
+        color: #047857;
+    }
+    
+    .summary-text {
+        margin-top: 0.75rem;
+        line-height: 1.5;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 0;
+        color: #6b7280;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #d1d5db;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="header text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">요약 히스토리</h1>
+        <p class="text-gray-600">이전에 생성된 모든 요약 결과를 확인할 수 있습니다.</p>
+    </div>
+    
+    {% if not is_ajax %}
+    <!-- 네비게이션 탭 -->
+    <div class="navigation-tabs max-w-5xl mx-auto mb-6">
+        <div class="flex border-b border-gray-200">
+            <a href="/" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
+                <i class="fas fa-home mr-2"></i>홈
+            </a>
+            <a href="/manage" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
+                <i class="fas fa-cog mr-2"></i>채널/키워드
+            </a>
+            <a href="/history" class="px-6 py-3 text-center border-b-2 border-indigo-500 font-medium text-indigo-600">
+                <i class="fas fa-history mr-2"></i>히스토리
+            </a>
+            <a href="#" id="report-tab" class="px-6 py-3 text-center text-gray-600 hover:text-gray-800 font-medium">
+                <i class="fas fa-chart-bar mr-2"></i>리포트
+            </a>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 필터링 및 검색 -->
+    <div class="max-w-5xl mx-auto mb-8 bg-white p-4 rounded-lg shadow-sm">
+        <div class="flex flex-wrap items-center space-y-2 md:space-y-0">
+            <div class="w-full md:w-1/3 pr-4">
+                <input type="text" id="search-input" placeholder="검색어를 입력하세요" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="w-full md:w-1/4 px-2">
+                <select id="type-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="all">모든 유형</option>
+                    <option value="text">텍스트</option>
+                    <option value="youtube">유튜브</option>
+                    <option value="document">문서</option>
+                </select>
+            </div>
+            <div class="w-full md:w-1/4 px-2">
+                <select id="sort-order" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="newest">최신순</option>
+                    <option value="oldest">오래된순</option>
+                </select>
+            </div>
+            <div class="w-full md:w-auto pl-2">
+                <button id="refresh-btn" class="w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <i class="fas fa-sync-alt mr-1"></i> 새로고침
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 히스토리 목록 -->
+    <div class="max-w-5xl mx-auto" id="history-container">
+        <!-- 로딩 상태 -->
+        <div id="loading" class="text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+            <p class="text-indigo-600 mt-2">히스토리를 불러오는 중입니다...</p>
+        </div>
+        
+        <!-- 히스토리 항목들 -->
+        <div id="history-items" class="hidden">
+            <!-- 자바스크립트로 동적으로 채워짐 -->
+        </div>
+        
+        <!-- 비어있는 상태 -->
+        <div id="empty-state" class="empty-state hidden">
+            <i class="fas fa-history"></i>
+            <p class="text-lg">아직 요약 히스토리가 없습니다.</p>
+            <p class="mt-2">홈으로 이동하여 첫 번째 요약을 만들어보세요.</p>
+            <a href="/" class="inline-block mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                요약하러 가기
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if not is_ajax %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const historyContainer = document.getElementById('history-container');
+    const historyItems = document.getElementById('history-items');
+    const loadingElem = document.getElementById('loading');
+    const emptyState = document.getElementById('empty-state');
+    const searchInput = document.getElementById('search-input');
+    const typeFilter = document.getElementById('type-filter');
+    const sortOrder = document.getElementById('sort-order');
+    const refreshBtn = document.getElementById('refresh-btn');
+    
+    // 초기 데이터 로드
+    loadHistoryData();
+    
+    // 이벤트 리스너
+    searchInput.addEventListener('input', filterHistoryItems);
+    typeFilter.addEventListener('change', filterHistoryItems);
+    sortOrder.addEventListener('change', sortHistoryItems);
+    refreshBtn.addEventListener('click', loadHistoryData);
+    
+    // 리포트 탭 클릭 이벤트
+    document.getElementById('report-tab').addEventListener('click', function(e) {
+        e.preventDefault();
+        alert('리포트 기능은 현재 개발 중입니다.');
+    });
+    
+    // 히스토리 데이터 불러오기
+    function loadHistoryData() {
+        // 로딩 상태 표시
+        loadingElem.classList.remove('hidden');
+        historyItems.classList.add('hidden');
+        emptyState.classList.add('hidden');
+        
+        // API 호출
+        fetch('/api/v1/history')
+            .then(response => response.json())
+            .then(data => {
+                // 히스토리 목록 비우기
+                historyItems.innerHTML = '';
+                
+                if (data.length === 0) {
+                    // 결과가 없는 경우
+                    loadingElem.classList.add('hidden');
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+                
+                // 결과가 있는 경우
+                data.forEach(item => {
+                    // 요약 시간 형식화
+                    const date = new Date(item.created_at);
+                    const formattedDate = `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일 ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+                    
+                    // 요약 유형에 따른 배지 클래스
+                    let typeBadgeClass = 'type-text';
+                    let typeLabel = '텍스트';
+                    
+                    if (item.summary_type === 'youtube') {
+                        typeBadgeClass = 'type-youtube';
+                        typeLabel = '유튜브';
+                    } else if (item.summary_type === 'document') {
+                        typeBadgeClass = 'type-document';
+                        typeLabel = '문서';
+                    }
+                    
+                    // 소스 정보 파싱
+                    let sourceInfo = '';
+                    if (item.source_info) {
+                        try {
+                            const sourceData = JSON.parse(item.source_info);
+                            if (item.summary_type === 'youtube' && sourceData.title) {
+                                sourceInfo = sourceData.title;
+                            } else if (item.summary_type === 'document' && sourceData.filename) {
+                                sourceInfo = sourceData.filename;
+                            }
+                        } catch (e) {
+                            console.error('Source info parsing error:', e);
+                        }
+                    }
+                    
+                    // 히스토리 항목 HTML 생성
+                    const historyItemHTML = `
+                        <div class="history-item" data-id="${item.id}" data-type="${item.summary_type}" data-date="${item.created_at}">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="type-badge ${typeBadgeClass}">${typeLabel}</span>
+                                    <span class="text-gray-500 text-sm">${formattedDate}</span>
+                                </div>
+                                <div>
+                                    <button class="text-gray-400 hover:text-gray-600 ml-2" onclick="deleteHistoryItem(${item.id})">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            ${sourceInfo ? `<div class="text-gray-700 font-medium mt-2">${sourceInfo}</div>` : ''}
+                            <div class="summary-text">${item.summary_text}</div>
+                        </div>
+                    `;
+                    
+                    historyItems.innerHTML += historyItemHTML;
+                });
+                
+                // 로딩 상태 숨기기, 결과 표시
+                loadingElem.classList.add('hidden');
+                historyItems.classList.remove('hidden');
+                
+                // 초기 정렬 적용
+                sortHistoryItems();
+            })
+            .catch(error => {
+                console.error('히스토리 데이터 로드 오류:', error);
+                loadingElem.classList.add('hidden');
+                historyItems.innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        <i class="fas fa-exclamation-circle text-3xl mb-2"></i>
+                        <p>데이터를 불러오는 중 오류가 발생했습니다.</p>
+                        <button class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700" onclick="loadHistoryData()">
+                            다시 시도
+                        </button>
+                    </div>
+                `;
+                historyItems.classList.remove('hidden');
+            });
+    }
+    
+    // 히스토리 항목 필터링
+    function filterHistoryItems() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const selectedType = typeFilter.value;
+        
+        const historyItemElems = document.querySelectorAll('.history-item');
+        
+        historyItemElems.forEach(item => {
+            const itemText = item.textContent.toLowerCase();
+            const itemType = item.dataset.type;
+            
+            const matchesSearch = searchTerm === '' || itemText.includes(searchTerm);
+            const matchesType = selectedType === 'all' || itemType === selectedType;
+            
+            if (matchesSearch && matchesType) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // 필터링 후 결과가 없는 경우 메시지 표시
+        const visibleItems = document.querySelectorAll('.history-item[style="display: block"]');
+        if (visibleItems.length === 0 && historyItems.children.length > 0) {
+            historyItems.innerHTML += `
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-search text-3xl mb-2"></i>
+                    <p>검색 결과가 없습니다.</p>
+                </div>
+            `;
+        }
+    }
+    
+    // 히스토리 항목 정렬
+    function sortHistoryItems() {
+        const selectedSort = sortOrder.value;
+        const historyItemElems = Array.from(document.querySelectorAll('.history-item'));
+        
+        historyItemElems.sort((a, b) => {
+            const dateA = new Date(a.dataset.date);
+            const dateB = new Date(b.dataset.date);
+            
+            if (selectedSort === 'newest') {
+                return dateB - dateA;
+            } else {
+                return dateA - dateB;
+            }
+        });
+        
+        // 정렬된 항목들 다시 추가
+        historyItems.innerHTML = '';
+        historyItemElems.forEach(item => {
+            historyItems.appendChild(item);
+        });
+        
+        // 필터링 적용
+        filterHistoryItems();
+    }
+});
+
+// 히스토리 항목 삭제
+function deleteHistoryItem(id) {
+    if (!confirm('이 요약 히스토리를 삭제하시겠습니까?')) {
+        return;
+    }
+    
+    fetch(`/api/v1/history/${id}`, {
+        method: 'DELETE'
+    })
+    .then(response => {
+        if (response.ok) {
+            // 삭제 성공, UI에서 항목 제거
+            const item = document.querySelector(`.history-item[data-id="${id}"]`);
+            if (item) {
+                item.style.opacity = '0';
+                setTimeout(() => {
+                    item.remove();
+                    
+                    // 남은 항목이 없는 경우 빈 상태 표시
+                    const remainingItems = document.querySelectorAll('.history-item');
+                    if (remainingItems.length === 0) {
+                        document.getElementById('history-items').classList.add('hidden');
+                        document.getElementById('empty-state').classList.remove('hidden');
+                    }
+                }, 300);
+            }
+        } else {
+            alert('히스토리 항목 삭제 중 오류가 발생했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Delete error:', error);
+        alert('서버 연결 오류가 발생했습니다.');
+    });
+}
+</script>
+{% else %}
+<script>
+// ajax 로드용 간소화된 스크립트
+function loadHistoryData() {
+    // ajax 로드 시에는 부모 페이지의 함수를 사용
+    if (typeof window.parent.loadHistoryData === 'function') {
+        window.parent.loadHistoryData();
+    } else {
+        const loadingElem = document.getElementById('loading');
+        const historyItems = document.getElementById('history-items');
+        const emptyState = document.getElementById('empty-state');
+        
+        // 로딩 상태 표시
+        loadingElem.classList.remove('hidden');
+        historyItems.classList.add('hidden');
+        emptyState.classList.add('hidden');
+        
+        // API 호출
+        fetch('/api/v1/history')
+            .then(response => response.json())
+            .then(data => {
+                // 생략: 기존 로직과 동일
+            });
+    }
+}
+
+// 히스토리 항목 삭제 함수도 유지
+function deleteHistoryItem(id) {
+    if (!confirm('이 요약 히스토리를 삭제하시겠습니까?')) {
+        return;
+    }
+    
+    fetch(`/api/v1/history/${id}`, {
+        method: 'DELETE'
+    })
+    .then(response => {
+        if (response.ok) {
+            // 삭제 성공, 페이지 새로고침
+            loadHistoryData();
+        } else {
+            alert('히스토리 항목 삭제 중 오류가 발생했습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Delete error:', error);
+        alert('서버 연결 오류가 발생했습니다.');
+    });
+}
+</script>
+{% endif %}
+{% endblock %} 
